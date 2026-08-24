@@ -1,0 +1,21 @@
+# Backend
+backend/.venv/
+backend/.env
+backend/__pycache__/
+backend/*.sqlite3
+backend/**/__pycache__/
+backend/**/*.py[cod]
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+
+# Environment
+.env
+*.local
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
