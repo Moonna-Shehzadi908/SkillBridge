@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "apps.accounts.apps.AccountsConfig",
+    "apps.skills.apps.SkillsConfig",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

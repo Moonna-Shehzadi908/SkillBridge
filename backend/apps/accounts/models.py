@@ -25,5 +25,11 @@ class User(AbstractUser):
         blank=True,
     )
 
+    skills = models.ManyToManyField(
+        "skills.Skill",
+        blank=True,
+        related_name="users",
+    )
+
     def __str__(self):
         return self.username
