@@ -1,12 +1,15 @@
 from rest_framework import serializers
 
 from .models import User
+from apps.skills.serializers import SkillSerializer
 
 
 class UserSerializer(serializers.ModelSerializer):
     """
     Serializer for displaying and updating user profile data.
     """
+
+    skills = SkillSerializer(many=True, read_only=True)
 
     class Meta:
         model = User
@@ -19,8 +22,9 @@ class UserSerializer(serializers.ModelSerializer):
             "profile_picture",
             "bio",
             "location",
+            "skills",
         ]
-        read_only_fields = ["id"]
+        read_only_fields = ["id", "skills"]
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -66,3 +70,15 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.save()
 
         return user
+
+
+class UserSkillsSerializer(serializers.ModelSerializer):
+    """
+    Serializer for displaying the authenticated user's selected skills.
+    """
+
+    skills = SkillSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = User
+        fields = ["skills"]

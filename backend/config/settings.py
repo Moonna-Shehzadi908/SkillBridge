@@ -42,7 +42,8 @@ INSTALLED_APPS = [
     "corsheaders",
     "apps.accounts.apps.AccountsConfig",
     "apps.skills.apps.SkillsConfig",
-]
+    "apps.resources.apps.ResourcesConfig",
+"apps.career.apps.CareerConfig",]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",

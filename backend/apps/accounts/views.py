@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 
 from .models import User
 from .serializers import RegisterSerializer, UserSerializer
+from apps.skills.models import Skill
 
 
 class RegisterView(generics.CreateAPIView):
@@ -26,3 +27,80 @@ class CurrentUserView(APIView):
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
+
+
+class UserSkillsView(APIView):
+    """
+    Add and view skills for the authenticated user.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        skills = request.user.skills.all()
+
+        data = [
+            {
+                "id": skill.id,
+                "name": skill.name,
+                "description": skill.description,
+                "category": skill.category,
+            }
+            for skill in skills
+        ]
+
+        return Response(data)
+
+    def post(self, request):
+        skill_id = request.data.get("skill_id")
+
+        if not skill_id:
+            return Response(
+                {"error": "skill_id is required."},
+                status=400,
+            )
+
+        try:
+            skill = Skill.objects.get(id=skill_id)
+        except Skill.DoesNotExist:
+            return Response(
+                {"error": "Skill not found."},
+                status=404,
+            )
+
+        request.user.skills.add(skill)
+
+        return Response(
+            {
+                "message": "Skill added successfully.",
+                "skill": {
+                    "id": skill.id,
+                    "name": skill.name,
+                    "category": skill.category,
+                },
+            },
+            status=201,
+        )
+
+
+class RemoveUserSkillView(APIView):
+    """
+    Remove a skill from the authenticated user's profile.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, skill_id):
+        try:
+            skill = Skill.objects.get(id=skill_id)
+        except Skill.DoesNotExist:
+            return Response(
+                {"error": "Skill not found."},
+                status=404,
+            )
+
+        request.user.skills.remove(skill)
+
+        return Response(
+            {"message": "Skill removed successfully."}
+        )
