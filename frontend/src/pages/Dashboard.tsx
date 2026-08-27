@@ -29,7 +29,6 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Edit profile state
   const [editMode, setEditMode] = useState(false);
 
   const [editData, setEditData] = useState({
@@ -39,6 +38,9 @@ function Dashboard() {
     bio: "",
     location: "",
   });
+
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
@@ -60,7 +62,6 @@ function Dashboard() {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
           },
         });
 
@@ -79,7 +80,6 @@ function Dashboard() {
 
         setUser(data);
 
-        // Populate edit form
         setEditData({
           first_name: data.first_name || "",
           last_name: data.last_name || "",
@@ -126,6 +126,35 @@ function Dashboard() {
   };
 
   // =========================
+  // Image Change
+  // =========================
+  const handleImageChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setSaveMessage("Please select a valid image file.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setSaveMessage("Image size must be less than 5 MB.");
+      return;
+    }
+
+    setSelectedImage(file);
+    setSaveMessage("");
+
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
+  };
+
+  // =========================
   // Open Edit Mode
   // =========================
   const handleEditProfile = () => {
@@ -139,6 +168,8 @@ function Dashboard() {
       location: user.location || "",
     });
 
+    setSelectedImage(null);
+    setImagePreview(null);
     setSaveMessage("");
     setEditMode(true);
   };
@@ -157,12 +188,14 @@ function Dashboard() {
       location: user.location || "",
     });
 
+    setSelectedImage(null);
+    setImagePreview(null);
     setSaveMessage("");
     setEditMode(false);
   };
 
   // =========================
-  // Save Profile
+  // Save Profile + Picture
   // =========================
   const handleSaveProfile = async () => {
     const token = localStorage.getItem("access_token");
@@ -176,19 +209,24 @@ function Dashboard() {
     setSaveMessage("");
 
     try {
+      const formData = new FormData();
+
+      formData.append("first_name", editData.first_name);
+      formData.append("last_name", editData.last_name);
+      formData.append("email", editData.email);
+      formData.append("bio", editData.bio);
+      formData.append("location", editData.location);
+
+      if (selectedImage) {
+        formData.append("profile_picture", selectedImage);
+      }
+
       const response = await fetch(`${API_URL}/api/accounts/me/`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          first_name: editData.first_name,
-          last_name: editData.last_name,
-          email: editData.email,
-          bio: editData.bio,
-          location: editData.location,
-        }),
+        body: formData,
       });
 
       const data = await response.json();
@@ -228,6 +266,8 @@ function Dashboard() {
         location: updatedUser.location || "",
       });
 
+      setSelectedImage(null);
+      setImagePreview(null);
       setEditMode(false);
       setSaveMessage("Profile updated successfully.");
     } catch (err) {
@@ -281,18 +321,29 @@ function Dashboard() {
   }
 
   // =========================
+  // Avatar
+  // =========================
+  const avatarUrl = imagePreview
+    ? imagePreview
+    : user?.profile_picture
+      ? `${API_URL}${user.profile_picture}`
+      : null;
+
+  const avatarLetter =
+    user?.first_name?.charAt(0).toUpperCase() ||
+    user?.username?.charAt(0).toUpperCase() ||
+    "U";
+
+  // =========================
   // Dashboard
   // =========================
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-300">
       <ThemeToggle />
 
-      {/* =========================
-          Navigation
-      ========================== */}
+      {/* Navigation */}
       <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--primary)] text-lg font-bold text-white">
               S
@@ -303,7 +354,6 @@ function Dashboard() {
             </span>
           </Link>
 
-          {/* Logout */}
           <button
             type="button"
             onClick={handleLogout}
@@ -314,21 +364,25 @@ function Dashboard() {
         </div>
       </header>
 
-      {/* =========================
-          Main Dashboard
-      ========================== */}
+      {/* Main Dashboard */}
       <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        {/* =========================
-            Welcome
-        ========================== */}
+
+        {/* Welcome */}
         <section className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm sm:p-8">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-            {/* Avatar */}
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-3xl font-bold text-[var(--primary)]">
-              {user?.first_name?.charAt(0).toUpperCase() ||
-                user?.username?.charAt(0).toUpperCase() ||
-                "U"}
-            </div>
+
+            {/* Profile Picture */}
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt="Profile"
+                className="h-20 w-20 shrink-0 rounded-2xl object-cover shadow-sm"
+              />
+            ) : (
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-3xl font-bold text-[var(--primary)]">
+                {avatarLetter}
+              </div>
+            )}
 
             <div>
               <p className="text-sm font-medium text-[var(--primary)]">
@@ -341,15 +395,16 @@ function Dashboard() {
                   : user?.username}
               </h1>
 
-              <p className="mt-2 text-sm">@{user?.username}</p>
+              <p className="mt-2 text-sm">
+                @{user?.username}
+              </p>
             </div>
           </div>
         </section>
 
-        {/* =========================
-            Quick Actions
-        ========================== */}
+        {/* Quick Actions */}
         <section className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+
           {/* Skills */}
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-xl">
@@ -364,7 +419,7 @@ function Dashboard() {
               Add and manage the skills you want to develop.
             </p>
 
-            <button
+            <button onClick={() => navigate("/skills")}
               type="button"
               className="mt-5 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
             >
@@ -386,7 +441,7 @@ function Dashboard() {
               Discover useful resources to improve your skills.
             </p>
 
-            <button
+            <button onClick={() => navigate("/resources")}
               type="button"
               className="mt-5 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
             >
@@ -408,19 +463,18 @@ function Dashboard() {
               Explore career directions based on your interests.
             </p>
 
-            <button
-              type="button"
-              className="mt-5 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
-            >
-              Explore Career
-            </button>
+           <Link
+  to="/career"
+  className="mt-5 inline-flex rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold !text-white transition hover:bg-[var(--primary-hover)]"
+>
+  Explore Career
+</Link>
           </div>
         </section>
 
-        {/* =========================
-            Profile Information
-        ========================== */}
+        {/* Profile */}
         <section className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm sm:p-8">
+
           {/* Profile Header */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -444,11 +498,60 @@ function Dashboard() {
             )}
           </div>
 
-          {/* =========================
-              Edit Form
-          ========================== */}
+          {/* Edit Form */}
           {editMode ? (
             <div className="mt-6 space-y-5">
+
+              {/* Profile Picture Upload */}
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5">
+                <p className="mb-4 text-sm font-semibold text-[var(--text-heading)]">
+                  Profile Picture
+                </p>
+
+                <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt="Profile preview"
+                      className="h-24 w-24 rounded-2xl object-cover shadow-sm"
+                    />
+                  ) : (
+                    <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-3xl font-bold text-[var(--primary)]">
+                      {avatarLetter}
+                    </div>
+                  )}
+
+                  <div>
+                    <label
+                      htmlFor="profile_picture"
+                      className="inline-flex cursor-pointer rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
+                    >
+                      Choose Picture
+                    </label>
+
+                    <input
+                      id="profile_picture"
+                      name="profile_picture"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+
+                    <p className="mt-2 text-xs">
+                      JPG, PNG or other image formats. Maximum 5 MB.
+                    </p>
+
+                    {selectedImage && (
+                      <p className="mt-1 text-xs font-medium text-[var(--primary)]">
+                        Selected: {selectedImage.name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {/* First + Last Name */}
               <div className="grid gap-5 sm:grid-cols-2">
                 <div>
@@ -584,10 +687,9 @@ function Dashboard() {
               </div>
             </div>
           ) : (
-            /* =========================
-               Profile Display
-            ========================== */
+            /* Profile Display */
             <div className="mt-6 grid gap-5 sm:grid-cols-2">
+
               {/* Email */}
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide">
@@ -623,7 +725,7 @@ function Dashboard() {
             </div>
           )}
 
-          {/* Success Message after closing form */}
+          {/* Success Message */}
           {!editMode && saveMessage && (
             <p className="mt-4 text-sm font-medium text-[var(--primary)]">
               {saveMessage}

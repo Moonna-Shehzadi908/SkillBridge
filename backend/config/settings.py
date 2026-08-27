@@ -153,3 +153,6 @@ CORS_ALLOWED_ORIGINS = [
 
 
 AUTH_USER_MODEL = "accounts.User"
+# Media files (user uploaded files)
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
