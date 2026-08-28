@@ -1,9 +1,16 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ThemeToggle from "../components/ThemeToggle";
 
 const API_URL = "http://127.0.0.1:8000";
+
+interface Skill {
+  id: number;
+  name: string;
+  description: string;
+  category: string;
+}
 
 interface User {
   id: number;
@@ -14,12 +21,7 @@ interface User {
   profile_picture: string | null;
   bio: string | null;
   location: string | null;
-  skills?: {
-    id: number;
-    name: string;
-    description: string;
-    category: string;
-  }[];
+  skills?: Skill[];
 }
 
 function Dashboard() {
@@ -30,7 +32,7 @@ function Dashboard() {
   const [error, setError] = useState("");
 
   const [editMode, setEditMode] = useState(false);
-
+const [logoutMessage, setLogoutMessage] = useState("");
   const [editData, setEditData] = useState({
     first_name: "",
     last_name: "",
@@ -105,11 +107,15 @@ function Dashboard() {
   // Logout
   // =========================
   const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
 
+  setLogoutMessage("Successfully logged out.");
+
+  setTimeout(() => {
     navigate("/login");
-  };
+  }, 1200);
+};
 
   // =========================
   // Edit Input Change
@@ -150,6 +156,10 @@ function Dashboard() {
     setSelectedImage(file);
     setSaveMessage("");
 
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
+
     const previewUrl = URL.createObjectURL(file);
     setImagePreview(previewUrl);
   };
@@ -187,6 +197,10 @@ function Dashboard() {
       bio: user.bio || "",
       location: user.location || "",
     });
+
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
 
     setSelectedImage(null);
     setImagePreview(null);
@@ -266,6 +280,10 @@ function Dashboard() {
         location: updatedUser.location || "",
       });
 
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+
       setSelectedImage(null);
       setImagePreview(null);
       setEditMode(false);
@@ -282,15 +300,46 @@ function Dashboard() {
   };
 
   // =========================
+  // Display Values
+  // =========================
+  const fullName = useMemo(() => {
+    if (!user) return "User";
+
+    const name = `${user.first_name || ""} ${user.last_name || ""}`.trim();
+
+    return name || user.username;
+  }, [user]);
+
+  const avatarUrl = imagePreview
+    ? imagePreview
+    : user?.profile_picture
+      ? user.profile_picture.startsWith("http")
+        ? user.profile_picture
+        : `${API_URL}${user.profile_picture}`
+      : null;
+
+  const avatarLetter =
+    user?.first_name?.charAt(0).toUpperCase() ||
+    user?.username?.charAt(0).toUpperCase() ||
+    "U";
+
+  const skills = user?.skills || [];
+
+  // =========================
   // Loading
   // =========================
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] text-[var(--text)]">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4 text-[var(--text)]">
         <div className="text-center">
-          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-[var(--border)] border-t-[var(--primary)]" />
+          <div
+            className="mx-auto mb-4 h-11 w-11 animate-spin rounded-full border-4 border-[var(--border)] border-t-[var(--primary)]"
+            aria-hidden="true"
+          />
 
-          <p>Loading your dashboard...</p>
+          <p className="text-sm font-medium">
+            Loading your dashboard...
+          </p>
         </div>
       </div>
     );
@@ -302,16 +351,23 @@ function Dashboard() {
   if (error) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4 text-[var(--text)]">
-        <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center shadow-lg">
-          <h1 className="text-2xl font-bold text-[var(--text-heading)]">
+        <div
+          role="alert"
+          className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center shadow-lg"
+        >
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10 text-2xl">
+            ⚠️
+          </div>
+
+          <h1 className="mt-5 text-2xl font-bold text-[var(--text-heading)]">
             Something went wrong
           </h1>
 
-          <p className="mt-3 text-sm">{error}</p>
+          <p className="mt-3 text-sm leading-6">{error}</p>
 
           <Link
             to="/login"
-            className="mt-6 inline-flex rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
+            className="mt-6 inline-flex items-center justify-center rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2"
           >
             Back to Login
           </Link>
@@ -321,31 +377,48 @@ function Dashboard() {
   }
 
   // =========================
-  // Avatar
-  // =========================
-  const avatarUrl = imagePreview
-    ? imagePreview
-    : user?.profile_picture
-      ? `${API_URL}${user.profile_picture}`
-      : null;
-
-  const avatarLetter =
-    user?.first_name?.charAt(0).toUpperCase() ||
-    user?.username?.charAt(0).toUpperCase() ||
-    "U";
-
-  // =========================
   // Dashboard
   // =========================
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-300">
-      <ThemeToggle />
+  <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-300">
 
-      {/* Navigation */}
-      <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--primary)] text-lg font-bold text-white">
+    {logoutMessage && (
+      <div
+        role="alert"
+        aria-live="polite"
+        className="fixed right-4 top-20 z-[100] flex w-[calc(100%-2rem)] max-w-sm items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3.5 shadow-xl"
+      >
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--primary)] text-sm font-bold text-white">
+          ✓
+        </div>
+
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-[var(--text-heading)]">
+            Logout Successful
+          </p>
+
+          <p className="mt-0.5 text-xs">
+            {logoutMessage}
+          </p>
+        </div>
+      </div>
+    )}
+
+    <ThemeToggle />
+
+    {/* remaining  dashboard */}
+
+      {/* =========================
+          Navigation
+      ========================= */}
+      <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur-xl">
+        <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+          <Link
+            to="/"
+            aria-label="SkillBridge home"
+            className="flex shrink-0 items-center gap-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--primary)] text-lg font-bold text-white shadow-sm">
               S
             </span>
 
@@ -354,128 +427,339 @@ function Dashboard() {
             </span>
           </Link>
 
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="whitespace-nowrap rounded-xl border border-[var(--border)] px-5 py-2.5 text-sm font-semibold text-[var(--text-heading)] transition hover:border-[var(--primary)] hover:text-[var(--primary)]"
+          <nav
+            aria-label="Dashboard navigation"
+            className="hidden items-center gap-1 md:flex"
           >
-            Log out
-          </button>
+            <Link
+              to="/skills"
+              className="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+            >
+              Skills
+            </Link>
+
+            <Link
+              to="/resources"
+              className="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+            >
+              Resources
+            </Link>
+
+            <Link
+              to="/career"
+              className="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+            >
+              Career
+            </Link>
+          </nav>
+
+          <button
+  type="button"
+  onClick={handleLogout}
+  aria-label="Log out of SkillBridge"
+  className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[var(--primary-hover)] hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2"
+>
+  Log out
+</button>
         </div>
       </header>
 
-      {/* Main Dashboard */}
-      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      {/* =========================
+          Main
+      ========================= */}
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+        {/* =========================
+            Welcome Hero
+        ========================= */}
+        <section className="relative overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+          <div className="absolute -right-20 -top-20 h-52 w-52 rounded-full bg-[var(--primary-soft)] blur-3xl" />
 
-        {/* Welcome */}
-        <section className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm sm:p-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+          <div className="relative p-6 sm:p-8 lg:p-10">
+            <div className="flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center">
+                {/* Avatar */}
+                <div className="shrink-0">
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={`${fullName}'s profile`}
+                      className="h-20 w-20 rounded-2xl object-cover shadow-md ring-4 ring-[var(--primary-soft)] sm:h-24 sm:w-24"
+                    />
+                  ) : (
+                    <div
+                      aria-label={`${fullName}'s profile initials`}
+                      className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-3xl font-bold text-[var(--primary)] shadow-sm ring-4 ring-[var(--primary-soft)] sm:h-24 sm:w-24"
+                    >
+                      {avatarLetter}
+                    </div>
+                  )}
+                </div>
 
-            {/* Profile Picture */}
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt="Profile"
-                className="h-20 w-20 shrink-0 rounded-2xl object-cover shadow-sm"
-              />
-            ) : (
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-3xl font-bold text-[var(--primary)]">
-                {avatarLetter}
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-[var(--primary)]">
+                    Welcome back 👋
+                  </p>
+
+                  <h1 className="mt-1 truncate text-3xl font-bold tracking-tight text-[var(--text-heading)] sm:text-4xl">
+                    {fullName}
+                  </h1>
+
+                  <p className="mt-2 text-sm">
+                    @{user?.username}
+                  </p>
+
+                  {user?.bio && (
+                    <p className="mt-3 max-w-2xl text-sm leading-6">
+                      {user.bio}
+                    </p>
+                  )}
+
+                  {user?.location && (
+                    <p className="mt-2 flex items-center gap-1.5 text-sm">
+                      <span aria-hidden="true">📍</span>
+                      {user.location}
+                    </p>
+                  )}
+                </div>
               </div>
-            )}
 
-            <div>
-              <p className="text-sm font-medium text-[var(--primary)]">
-                Welcome back 👋
-              </p>
-
-              <h1 className="mt-1 text-3xl font-bold tracking-tight text-[var(--text-heading)] sm:text-4xl">
-                {user?.first_name
-                  ? `${user.first_name} ${user.last_name}`.trim()
-                  : user?.username}
-              </h1>
-
-              <p className="mt-2 text-sm">
-                @{user?.username}
-              </p>
+             
             </div>
           </div>
         </section>
 
-        {/* Quick Actions */}
-        <section className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {/* =========================
+            Stats
+        ========================= */}
+        <section
+          aria-label="Profile statistics"
+          className="mt-6 grid gap-4 sm:grid-cols-3"
+        >
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
+            <p className="text-sm font-medium">Skills</p>
 
-          {/* Skills */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-xl">
-              🎯
-            </div>
-
-            <h2 className="text-lg font-bold text-[var(--text-heading)]">
-              My Skills
-            </h2>
-
-            <p className="mt-2 text-sm leading-6">
-              Add and manage the skills you want to develop.
+            <p className="mt-2 text-3xl font-bold text-[var(--text-heading)]">
+              {skills.length}
             </p>
 
-            <button onClick={() => navigate("/skills")}
-              type="button"
-              className="mt-5 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
-            >
-              Explore Skills
-            </button>
+            <p className="mt-1 text-xs">
+              Skills in your profile
+            </p>
           </div>
 
-          {/* Resources */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-xl">
-              📚
-            </div>
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
+            <p className="text-sm font-medium">Profile</p>
 
-            <h2 className="text-lg font-bold text-[var(--text-heading)]">
-              Learning Resources
-            </h2>
-
-            <p className="mt-2 text-sm leading-6">
-              Discover useful resources to improve your skills.
+            <p className="mt-2 text-3xl font-bold text-[var(--text-heading)]">
+              {user?.bio && user?.location ? "100%" : "In progress"}
             </p>
 
-            <button onClick={() => navigate("/resources")}
-              type="button"
-              className="mt-5 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
-            >
-              Browse Resources
-            </button>
+            <p className="mt-1 text-xs">
+              Keep your profile complete
+            </p>
           </div>
 
-          {/* Career */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-xl">
-              🚀
-            </div>
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
+            <p className="text-sm font-medium">Learning</p>
 
-            <h2 className="text-lg font-bold text-[var(--text-heading)]">
-              Career Path
-            </h2>
-
-            <p className="mt-2 text-sm leading-6">
-              Explore career directions based on your interests.
+            <p className="mt-2 text-3xl font-bold text-[var(--text-heading)]">
+              Ready
             </p>
 
-           <Link
-  to="/career"
-  className="mt-5 inline-flex rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold !text-white transition hover:bg-[var(--primary-hover)]"
->
-  Explore Career
-</Link>
+            <p className="mt-1 text-xs">
+              Continue your skill journey
+            </p>
           </div>
         </section>
 
-        {/* Profile */}
+        {/* =========================
+            Quick Actions
+        ========================= */}
+        <section className="mt-8">
+          <div className="mb-4">
+            <h2 className="text-2xl font-bold text-[var(--text-heading)]">
+              Continue Learning
+            </h2>
+
+            <p className="mt-1 text-sm">
+              Explore SkillBridge features and build your career path.
+            </p>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-3">
+            {/* Skills */}
+            <article className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-xl transition group-hover:scale-105">
+                  🎯
+                </div>
+
+                <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--primary)]">
+                  Skills
+                </span>
+              </div>
+
+              <h3 className="mt-5 text-lg font-bold text-[var(--text-heading)]">
+                My Skills
+              </h3>
+
+              <p className="mt-2 text-sm leading-6">
+                Add, explore and manage the skills you want to develop.
+              </p>
+
+              <Link
+                to="/skills"
+                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold !text-white transition hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2"
+              >
+                Explore Skills
+                <span aria-hidden="true">→</span>
+              </Link>
+            </article>
+
+            {/* Resources */}
+            <article className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-xl transition group-hover:scale-105">
+                  📚
+                </div>
+
+                <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--primary)]">
+                  Learn
+                </span>
+              </div>
+
+              <h3 className="mt-5 text-lg font-bold text-[var(--text-heading)]">
+                Learning Resources
+              </h3>
+
+              <p className="mt-2 text-sm leading-6">
+                Discover useful resources to improve your technical and
+                professional skills.
+              </p>
+
+              <Link
+                to="/resources"
+                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold !text-white transition hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2"
+              >
+                Browse Resources
+                <span aria-hidden="true">→</span>
+              </Link>
+            </article>
+
+            {/* Career */}
+            <article className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-xl transition group-hover:scale-105">
+                  🚀
+                </div>
+
+                <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--primary)]">
+                  Career
+                </span>
+              </div>
+
+              <h3 className="mt-5 text-lg font-bold text-[var(--text-heading)]">
+                Career Path
+              </h3>
+
+              <p className="mt-2 text-sm leading-6">
+                Explore career directions based on your interests and skills.
+              </p>
+
+              <Link
+                to="/career"
+                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold !text-white transition hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2"
+              >
+                Explore Career
+                <span aria-hidden="true">→</span>
+              </Link>
+            </article>
+          </div>
+        </section>
+
+        {/* =========================
+            Skills Preview
+        ========================= */}
         <section className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm sm:p-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-[var(--text-heading)]">
+                Skills Preview
+              </h2>
 
-          {/* Profile Header */}
+              <p className="mt-1 text-sm">
+                A quick look at the skills connected to your profile.
+              </p>
+            </div>
+
+            <Link
+              to="/skills"
+className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold !text-white shadow-sm transition-all duration-200 hover:bg-[var(--primary-hover)] hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"            >
+              Manage Skills
+              <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+
+          {skills.length > 0 ? (
+            <div className="mt-6 flex flex-wrap gap-3">
+              {skills.slice(0, 8).map((skill) => (
+                <div
+                  key={skill.id}
+                  className="rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 transition hover:border-[var(--primary)] hover:shadow-sm"
+                >
+                  <p className="text-sm font-semibold text-[var(--text-heading)]">
+                    {skill.name}
+                  </p>
+
+                  {skill.category && (
+                    <p className="mt-1 text-xs">
+                      {skill.category}
+                    </p>
+                  )}
+                </div>
+              ))}
+
+              {skills.length > 8 && (
+                <Link
+                  to="/skills"
+                  className="flex items-center rounded-xl border border-dashed border-[var(--border)] px-4 py-3 text-sm font-semibold text-[var(--primary)] transition hover:border-[var(--primary)]"
+                >
+                  +{skills.length - 8} more
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div className="mt-6 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg)] p-8 text-center">
+              <div
+                className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-xl"
+                aria-hidden="true"
+              >
+                🎯
+              </div>
+
+              <h3 className="mt-4 font-semibold text-[var(--text-heading)]">
+                No skills added yet
+              </h3>
+
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6">
+                Start building your learning profile by adding the skills
+                you want to develop.
+              </p>
+
+              <Link
+                to="/skills"
+                className="mt-5 inline-flex rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold !text-white transition hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+              >
+                Add Your First Skill
+              </Link>
+            </div>
+          )}
+        </section>
+
+        {/* =========================
+            Profile Information
+        ========================= */}
+        <section className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm sm:p-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-xl font-bold text-[var(--text-heading)]">
@@ -483,33 +767,33 @@ function Dashboard() {
               </h2>
 
               <p className="mt-1 text-sm">
-                Your information from your SkillBridge account.
+                Keep your SkillBridge profile up to date.
               </p>
             </div>
 
             {!editMode && (
-              <button
-                type="button"
-                onClick={handleEditProfile}
-                className="self-start rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-semibold text-[var(--text-heading)] transition hover:border-[var(--primary)] hover:text-[var(--primary)] sm:self-auto"
-              >
-                Edit Profile
-              </button>
+             <button
+  type="button"
+  onClick={handleEditProfile}
+  className="inline-flex w-full items-center justify-center rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[var(--primary-hover)] hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2 sm:w-auto"
+>
+  Edit Profile
+</button>
             )}
           </div>
 
-          {/* Edit Form */}
+          {/* =========================
+              Edit Form
+          ========================= */}
           {editMode ? (
             <div className="mt-6 space-y-5">
-
-              {/* Profile Picture Upload */}
+              {/* Profile Picture */}
               <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5">
                 <p className="mb-4 text-sm font-semibold text-[var(--text-heading)]">
                   Profile Picture
                 </p>
 
                 <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-
                   {avatarUrl ? (
                     <img
                       src={avatarUrl}
@@ -525,7 +809,7 @@ function Dashboard() {
                   <div>
                     <label
                       htmlFor="profile_picture"
-                      className="inline-flex cursor-pointer rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
+                      className="inline-flex cursor-pointer rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)] focus-within:ring-2 focus-within:ring-[var(--primary)]"
                     >
                       Choose Picture
                     </label>
@@ -536,7 +820,7 @@ function Dashboard() {
                       type="file"
                       accept="image/*"
                       onChange={handleImageChange}
-                      className="hidden"
+                      className="sr-only"
                     />
 
                     <p className="mt-2 text-xs">
@@ -552,7 +836,7 @@ function Dashboard() {
                 </div>
               </div>
 
-              {/* First + Last Name */}
+              {/* Names */}
               <div className="grid gap-5 sm:grid-cols-2">
                 <div>
                   <label
@@ -569,7 +853,8 @@ function Dashboard() {
                     value={editData.first_name}
                     onChange={handleEditChange}
                     placeholder="Enter your first name"
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
+                    autoComplete="given-name"
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:text-[var(--text)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
                   />
                 </div>
 
@@ -588,7 +873,8 @@ function Dashboard() {
                     value={editData.last_name}
                     onChange={handleEditChange}
                     placeholder="Enter your last name"
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
+                    autoComplete="family-name"
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:text-[var(--text)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
                   />
                 </div>
               </div>
@@ -609,7 +895,8 @@ function Dashboard() {
                   value={editData.email}
                   onChange={handleEditChange}
                   placeholder="Enter your email"
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
+                  autoComplete="email"
+                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:text-[var(--text)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
                 />
               </div>
 
@@ -629,7 +916,8 @@ function Dashboard() {
                   value={editData.location}
                   onChange={handleEditChange}
                   placeholder="Add your location"
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
+                  autoComplete="address-level2"
+                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:text-[var(--text)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
                 />
               </div>
 
@@ -649,7 +937,7 @@ function Dashboard() {
                   onChange={handleEditChange}
                   rows={4}
                   placeholder="Tell us a little about yourself..."
-                  className="w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
+                  className="w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:text-[var(--text)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
                 />
               </div>
 
@@ -659,7 +947,7 @@ function Dashboard() {
                   type="button"
                   onClick={handleSaveProfile}
                   disabled={saving}
-                  className="rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--primary-hover)] hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--primary-hover)] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[var(--primary)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {saving ? "Saving..." : "Save Changes"}
                 </button>
@@ -668,13 +956,15 @@ function Dashboard() {
                   type="button"
                   onClick={handleCancelEdit}
                   disabled={saving}
-                  className="rounded-xl border border-[var(--border)] px-5 py-3 text-sm font-semibold text-[var(--text-heading)] transition hover:border-[var(--primary)] hover:text-[var(--primary)] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-xl border border-[var(--border)] px-5 py-3 text-sm font-semibold text-[var(--text-heading)] transition hover:border-[var(--primary)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Cancel
                 </button>
 
                 {saveMessage && (
                   <p
+                    role="status"
+                    aria-live="polite"
                     className={`text-sm font-medium ${
                       saveMessage.includes("successfully")
                         ? "text-[var(--primary)]"
@@ -687,22 +977,34 @@ function Dashboard() {
               </div>
             </div>
           ) : (
-            /* Profile Display */
-            <div className="mt-6 grid gap-5 sm:grid-cols-2">
+            /* =========================
+               Profile Display
+            ========================= */
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              {/* Username */}
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide">
+                  Username
+                </p>
+
+                <p className="mt-1 break-words font-medium text-[var(--text-heading)]">
+                  @{user?.username}
+                </p>
+              </div>
 
               {/* Email */}
-              <div>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
                 <p className="text-xs font-semibold uppercase tracking-wide">
                   Email
                 </p>
 
                 <p className="mt-1 break-words font-medium text-[var(--text-heading)]">
-                  {user?.email}
+                  {user?.email || "Not available"}
                 </p>
               </div>
 
               {/* Location */}
-              <div>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
                 <p className="text-xs font-semibold uppercase tracking-wide">
                   Location
                 </p>
@@ -712,13 +1014,24 @@ function Dashboard() {
                 </p>
               </div>
 
+              {/* Name */}
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide">
+                  Full Name
+                </p>
+
+                <p className="mt-1 font-medium text-[var(--text-heading)]">
+                  {fullName}
+                </p>
+              </div>
+
               {/* Bio */}
-              <div className="sm:col-span-2">
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4 sm:col-span-2">
                 <p className="text-xs font-semibold uppercase tracking-wide">
                   Bio
                 </p>
 
-                <p className="mt-1 font-medium text-[var(--text-heading)]">
+                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[var(--text-heading)]">
                   {user?.bio || "No bio added yet."}
                 </p>
               </div>
@@ -727,12 +1040,62 @@ function Dashboard() {
 
           {/* Success Message */}
           {!editMode && saveMessage && (
-            <p className="mt-4 text-sm font-medium text-[var(--primary)]">
+            <p
+              role="status"
+              aria-live="polite"
+              className="mt-4 text-sm font-medium text-[var(--primary)]"
+            >
               {saveMessage}
             </p>
           )}
         </section>
+
+        {/* =========================
+            Mobile Navigation
+        ========================= */}
+        <section className="mt-8 md:hidden">
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+            <p className="mb-3 text-sm font-semibold text-[var(--text-heading)]">
+              Quick Navigation
+            </p>
+
+            <div className="grid grid-cols-3 gap-2">
+              <Link
+                to="/skills"
+                className="rounded-xl border border-[var(--border)] px-3 py-3 text-center text-xs font-semibold transition hover:border-[var(--primary)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+              >
+                🎯
+                <span className="mt-1 block">Skills</span>
+              </Link>
+
+              <Link
+                to="/resources"
+                className="rounded-xl border border-[var(--border)] px-3 py-3 text-center text-xs font-semibold transition hover:border-[var(--primary)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+              >
+                📚
+                <span className="mt-1 block">Resources</span>
+              </Link>
+
+              <Link
+                to="/career"
+                className="rounded-xl border border-[var(--border)] px-3 py-3 text-center text-xs font-semibold transition hover:border-[var(--primary)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+              >
+                🚀
+                <span className="mt-1 block">Career</span>
+              </Link>
+            </div>
+          </div>
+        </section>
       </main>
+
+      {/* =========================
+          Footer
+      ========================= */}
+      <footer className="border-t border-[var(--border)] py-6">
+        <div className="mx-auto max-w-7xl px-4 text-center text-xs sm:px-6 lg:px-8">
+          © {new Date().getFullYear()} SkillBridge. Keep learning, keep growing.
+        </div>
+      </footer>
     </div>
   );
 }

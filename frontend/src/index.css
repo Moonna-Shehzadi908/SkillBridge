@@ -1,3 +1,4 @@
+
 @import "tailwindcss";
 
 /* =========================================================
@@ -5,6 +6,7 @@
    ========================================================= */
 
 :root {
+  /* Typography */
   --font-sans:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
@@ -13,16 +15,19 @@
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
 
-  /* Light Theme */
-  --bg: #f8fafc;
+  /* =========================
+     Light Theme
+  ========================== */
+
+  --bg: #f6f7fb;
   --surface: #ffffff;
-  --surface-muted: #f1f5f9;
+  --surface-muted: #f8fafc;
 
   --text: #64748b;
-  --text-heading: #0f172a;
+  --text-heading: #111827;
   --text-muted: #94a3b8;
 
-  --border: #e2e8f0;
+  --border: #e5e7eb;
 
   --primary: #4f46e5;
   --primary-hover: #4338ca;
@@ -32,21 +37,24 @@
   --warning: #d97706;
   --danger: #dc2626;
 
+  /* Shadows */
   --shadow-sm:
-    0 1px 2px rgba(15, 23, 42, 0.05);
+    0 1px 2px rgba(15, 23, 42, 0.04);
 
   --shadow-md:
-    0 8px 24px rgba(15, 23, 42, 0.08);
+    0 8px 24px rgba(15, 23, 42, 0.07);
 
   --shadow-lg:
-    0 20px 45px rgba(15, 23, 42, 0.1);
+    0 20px 45px rgba(15, 23, 42, 0.09);
 
+  /* Base */
   color: var(--text);
   background: var(--bg);
 
   font-family: var(--font-sans);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
@@ -55,7 +63,6 @@
 
 /* =========================================================
    Dark Theme
-   Applied later through the .dark class
    ========================================================= */
 
 .dark {
@@ -135,6 +142,10 @@ img {
   max-width: 100%;
 }
 
+/* =========================================================
+   Headings
+   ========================================================= */
+
 h1,
 h2,
 h3,
@@ -190,7 +201,235 @@ p {
 }
 
 /* =========================================================
-   Responsive Foundation
+   Navigation
+   ========================================================= */
+
+header {
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+/* =========================================================
+   Hero Section
+   ========================================================= */
+
+#home {
+  position: relative;
+  overflow: hidden;
+}
+
+#home::before {
+  content: "";
+
+  position: absolute;
+
+  width: 420px;
+  height: 420px;
+
+  top: 5%;
+  left: 50%;
+
+  transform: translateX(-50%);
+
+  border-radius: 50%;
+
+  background: var(--primary-soft);
+
+  filter: blur(90px);
+
+  opacity: 0.75;
+
+  pointer-events: none;
+}
+
+#home > div {
+  position: relative;
+  z-index: 1;
+}
+
+#home h1 {
+  margin: 0;
+  line-height: 1.08;
+}
+
+#home p {
+  color: var(--text);
+}
+
+/* =========================================================
+   Hero Badge
+   ========================================================= */
+
+#home span {
+  transition:
+    border-color 0.25s ease,
+    background-color 0.25s ease,
+    transform 0.2s ease;
+}
+
+#home span:hover {
+  transform: translateY(-2px);
+}
+
+/* =========================================================
+   Buttons
+   ========================================================= */
+
+#home button {
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+#home button:hover {
+  transform: translateY(-2px);
+}
+
+#home button:active {
+  transform: translateY(0);
+}
+
+/* =========================================================
+   Skill Cards
+   ========================================================= */
+
+.skill-card {
+  position: relative;
+  overflow: hidden;
+
+  transition:
+    transform 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.skill-card::before {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  background: linear-gradient(
+    135deg,
+    var(--primary-soft),
+    transparent 45%
+  );
+
+  opacity: 0;
+
+  transition: opacity 0.25s ease;
+
+  pointer-events: none;
+}
+
+.skill-card:hover {
+  transform: translateY(-6px);
+
+  border-color: var(--primary);
+
+  box-shadow: var(--shadow-lg);
+}
+
+.skill-card:hover::before {
+  opacity: 1;
+}
+
+.skill-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.skill-icon {
+  display: flex;
+
+  width: 52px;
+  height: 52px;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 14px;
+
+  background: var(--primary-soft);
+
+  font-size: 25px;
+
+  transition:
+    transform 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.skill-card:hover .skill-icon {
+  transform: scale(1.08) rotate(-3deg);
+}
+
+/* =========================================================
+   Resource Cards
+   ========================================================= */
+
+.resource-card {
+  transition:
+    transform 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.resource-card:hover {
+  transform: translateY(-5px);
+
+  border-color: var(--primary);
+
+  box-shadow: var(--shadow-lg);
+}
+
+.resource-icon {
+  display: flex;
+
+  width: 48px;
+  height: 48px;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 14px;
+
+  background: var(--primary-soft);
+
+  font-size: 23px;
+}
+
+#resources-list {
+  scroll-margin-top: 90px;
+}
+
+/* =========================================================
+   Career Cards
+   ========================================================= */
+
+#career > div > div {
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+}
+
+#career > div > div:hover {
+  transform: translateY(-4px);
+
+  border-color: var(--primary);
+
+  box-shadow: var(--shadow-lg);
+}
+
+/* =========================================================
+   Mobile
    ========================================================= */
 
 @media (max-width: 768px) {
@@ -199,8 +438,58 @@ p {
   }
 }
 
+@media (max-width: 767px) {
+  #home {
+    min-height: calc(100vh - 4rem);
+
+    padding-top: 5rem;
+    padding-bottom: 5rem;
+  }
+
+  #home::before {
+    width: 280px;
+    height: 280px;
+
+    filter: blur(60px);
+  }
+
+  #home h1 {
+    font-size: 2.5rem;
+    line-height: 1.1;
+  }
+
+  #home p {
+    font-size: 0.95rem;
+    line-height: 1.7;
+  }
+
+  .skill-card:hover {
+    transform: translateY(-3px);
+  }
+
+  .resource-card:hover {
+    transform: translateY(-3px);
+  }
+}
+
+/* =========================================================
+   Small Mobile
+   ========================================================= */
+
 @media (max-width: 480px) {
   html {
     font-size: 14px;
+  }
+
+  #home h1 {
+    font-size: 2.2rem;
+  }
+
+  #home button {
+    width: 100%;
+  }
+
+  .skill-card {
+    padding: 1.25rem;
   }
 }
