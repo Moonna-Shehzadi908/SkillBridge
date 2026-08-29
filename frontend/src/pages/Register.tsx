@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ThemeToggle from "../components/ThemeToggle";
+
 const API_URL = "http://127.0.0.1:8000";
 
 function Register() {
@@ -115,215 +116,229 @@ function Register() {
   };
 
   return (
-  <div className="app min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-300">
-    <ThemeToggle />      
-      <main className="flex min-h-screen items-center justify-center px-4 py-10 sm:px-6">
-        <div className="w-full max-w-lg">
-          {/* Logo */}
-          <div className="mb-7 text-center">
-            <Link
-              to="/"
-              className="inline-flex items-center gap-2.5"
-            >
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary)] text-lg font-bold text-white shadow-sm">
-                S
-              </span>
+    <div className="app relative min-h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)] transition-colors duration-300">
+      {/* Background decoration */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -left-32 -top-32 h-80 w-80 rounded-full bg-[rgba(88,86,232,0.12)] blur-3xl dark:bg-[rgba(119,117,255,0.10)]" />
 
-              <span className="text-2xl font-bold tracking-tight text-[var(--text-heading)]">
-                Skill<span className="text-[var(--primary)]">Bridge</span>
-              </span>
-            </Link>
-          </div>
+        <div className="absolute -bottom-40 -right-32 h-96 w-96 rounded-full bg-[rgba(119,117,255,0.10)] blur-3xl dark:bg-[rgba(119,117,255,0.12)]" />
 
-          {/* Card */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-lg sm:p-8">
+        <div className="absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[rgba(88,86,232,0.05)] blur-3xl dark:bg-[rgba(119,117,255,0.06)]" />
+      </div>
+
+      <div className="relative z-10">
+        <ThemeToggle />
+
+        <main className="flex min-h-screen items-center justify-center px-4 py-10 sm:px-6">
+          <div className="w-full max-w-lg">
+
+            {/* Logo */}
             <div className="mb-7 text-center">
-              <h1 className="text-2xl font-bold text-[var(--text-heading)] sm:text-3xl">
-                Create your account
-              </h1>
+              <Link
+                to="/"
+                className="inline-flex items-center gap-2.5"
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary)] text-lg font-bold text-white shadow-lg shadow-[rgba(88,86,232,0.22)]">
+                  S
+                </span>
 
-              <p className="mt-2 text-sm text-[var(--text)]">
-                Start building your skills and career with SkillBridge.
+                <span className="text-2xl font-bold tracking-tight text-[var(--text-heading)]">
+                  Skill<span className="text-[var(--primary)]">Bridge</span>
+                </span>
+              </Link>
+            </div>
+
+            {/* Card */}
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_25px_70px_rgba(30,35,80,0.10)] backdrop-blur-xl sm:p-8 dark:shadow-[0_25px_70px_rgba(0,0,0,0.25)]">
+              <div className="mb-7 text-center">
+                <h1 className="text-2xl font-bold text-[var(--text-heading)] sm:text-3xl">
+                  Create your account
+                </h1>
+
+                <p className="mt-2 text-sm text-[var(--text)]">
+                  Start building your skills and career with SkillBridge.
+                </p>
+              </div>
+
+              {/* Error */}
+              {error && (
+                <div
+                  role="alert"
+                  className="mb-5 whitespace-pre-line rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300"
+                >
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-5">
+
+                {/* Name */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label
+                      htmlFor="first_name"
+                      className="mb-2 block text-sm font-semibold text-[var(--text-heading)]"
+                    >
+                      First name
+                    </label>
+
+                    <input
+                      id="first_name"
+                      name="first_name"
+                      type="text"
+                      value={formData.first_name}
+                      onChange={handleChange}
+                      placeholder="First name"
+                      autoComplete="given-name"
+                      required
+                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="last_name"
+                      className="mb-2 block text-sm font-semibold text-[var(--text-heading)]"
+                    >
+                      Last name
+                    </label>
+
+                    <input
+                      id="last_name"
+                      name="last_name"
+                      type="text"
+                      value={formData.last_name}
+                      onChange={handleChange}
+                      placeholder="Last name"
+                      autoComplete="family-name"
+                      required
+                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
+                    />
+                  </div>
+                </div>
+
+                {/* Username */}
+                <div>
+                  <label
+                    htmlFor="username"
+                    className="mb-2 block text-sm font-semibold text-[var(--text-heading)]"
+                  >
+                    Username
+                  </label>
+
+                  <input
+                    id="username"
+                    name="username"
+                    type="text"
+                    value={formData.username}
+                    onChange={handleChange}
+                    placeholder="Choose a username"
+                    autoComplete="username"
+                    required
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
+                  />
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="mb-2 block text-sm font-semibold text-[var(--text-heading)]"
+                  >
+                    Email
+                  </label>
+
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    required
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
+                  />
+                </div>
+
+                {/* Password */}
+                <div>
+                  <label
+                    htmlFor="password"
+                    className="mb-2 block text-sm font-semibold text-[var(--text-heading)]"
+                  >
+                    Password
+                  </label>
+
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="At least 8 characters"
+                    autoComplete="new-password"
+                    required
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
+                  />
+                </div>
+
+                {/* Confirm Password */}
+                <div>
+                  <label
+                    htmlFor="password_confirm"
+                    className="mb-2 block text-sm font-semibold text-[var(--text-heading)]"
+                  >
+                    Confirm password
+                  </label>
+
+                  <input
+                    id="password_confirm"
+                    name="password_confirm"
+                    type="password"
+                    value={formData.password_confirm}
+                    onChange={handleChange}
+                    placeholder="Confirm your password"
+                    autoComplete="new-password"
+                    required
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
+                  />
+                </div>
+
+                {/* Submit */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-[var(--primary-hover)] hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {loading ? "Creating account..." : "Create account"}
+                </button>
+              </form>
+
+              {/* Login */}
+              <p className="mt-6 text-center text-sm text-[var(--text)]">
+                Already have an account?{" "}
+                <Link
+                  to="/login"
+                  className="font-semibold text-[var(--primary)] hover:underline"
+                >
+                  Log in
+                </Link>
               </p>
             </div>
 
-            {/* Error */}
-            {error && (
-              <div
-                role="alert"
-                className="mb-5 whitespace-pre-line rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300"
-              >
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Name */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label
-                    htmlFor="first_name"
-                    className="mb-2 block text-sm font-semibold text-[var(--text-heading)]"
-                  >
-                    First name
-                  </label>
-
-                  <input
-                    id="first_name"
-                    name="first_name"
-                    type="text"
-                    value={formData.first_name}
-                    onChange={handleChange}
-                    placeholder="First name"
-                    autoComplete="given-name"
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="last_name"
-                    className="mb-2 block text-sm font-semibold text-[var(--text-heading)]"
-                  >
-                    Last name
-                  </label>
-
-                  <input
-                    id="last_name"
-                    name="last_name"
-                    type="text"
-                    value={formData.last_name}
-                    onChange={handleChange}
-                    placeholder="Last name"
-                    autoComplete="family-name"
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
-                  />
-                </div>
-              </div>
-
-              {/* Username */}
-              <div>
-                <label
-                  htmlFor="username"
-                  className="mb-2 block text-sm font-semibold text-[var(--text-heading)]"
-                >
-                  Username
-                </label>
-
-                <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  value={formData.username}
-                  onChange={handleChange}
-                  placeholder="Choose a username"
-                  autoComplete="username"
-                  required
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
-                />
-              </div>
-
-              {/* Email */}
-              <div>
-                <label
-                  htmlFor="email"
-                  className="mb-2 block text-sm font-semibold text-[var(--text-heading)]"
-                >
-                  Email
-                </label>
-
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  required
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
-                />
-              </div>
-
-              {/* Password */}
-              <div>
-                <label
-                  htmlFor="password"
-                  className="mb-2 block text-sm font-semibold text-[var(--text-heading)]"
-                >
-                  Password
-                </label>
-
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="At least 8 characters"
-                  autoComplete="new-password"
-                  required
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
-                />
-              </div>
-
-              {/* Confirm Password */}
-              <div>
-                <label
-                  htmlFor="password_confirm"
-                  className="mb-2 block text-sm font-semibold text-[var(--text-heading)]"
-                >
-                  Confirm password
-                </label>
-
-                <input
-                  id="password_confirm"
-                  name="password_confirm"
-                  type="password"
-                  value={formData.password_confirm}
-                  onChange={handleChange}
-                  placeholder="Confirm your password"
-                  autoComplete="new-password"
-                  required
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
-                />
-              </div>
-
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-[var(--primary-hover)] hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {loading ? "Creating account..." : "Create account"}
-              </button>
-            </form>
-
-            {/* Login */}
-            <p className="mt-6 text-center text-sm text-[var(--text)]">
-              Already have an account?{" "}
+            {/* Back */}
+            <div className="mt-6 text-center">
               <Link
-                to="/login"
-                className="font-semibold text-[var(--primary)] hover:underline"
+                to="/"
+                className="text-sm font-medium text-[var(--text)] transition-colors hover:text-[var(--primary)]"
               >
-                Log in
+                ← Back to SkillBridge
               </Link>
-            </p>
+            </div>
           </div>
-
-          {/* Back */}
-          <div className="mt-6 text-center">
-            <Link
-              to="/"
-              className="text-sm font-medium text-[var(--text)] transition-colors hover:text-[var(--primary)]"
-            >
-              ← Back to SkillBridge
-            </Link>
-          </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

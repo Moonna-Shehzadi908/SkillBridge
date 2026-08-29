@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ThemeToggle from "../components/ThemeToggle";
@@ -32,7 +31,8 @@ function Dashboard() {
   const [error, setError] = useState("");
 
   const [editMode, setEditMode] = useState(false);
-const [logoutMessage, setLogoutMessage] = useState("");
+  const [logoutMessage, setLogoutMessage] = useState("");
+
   const [editData, setEditData] = useState({
     first_name: "",
     last_name: "",
@@ -107,15 +107,15 @@ const [logoutMessage, setLogoutMessage] = useState("");
   // Logout
   // =========================
   const handleLogout = () => {
-  localStorage.removeItem("access_token");
-  localStorage.removeItem("refresh_token");
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
 
-  setLogoutMessage("Successfully logged out.");
+    setLogoutMessage("Successfully logged out.");
 
-  setTimeout(() => {
-    navigate("/login");
-  }, 1200);
-};
+    setTimeout(() => {
+      navigate("/login");
+    }, 1200);
+  };
 
   // =========================
   // Edit Input Change
@@ -139,9 +139,7 @@ const [logoutMessage, setLogoutMessage] = useState("");
   ) => {
     const file = e.target.files?.[0];
 
-    if (!file) {
-      return;
-    }
+    if (!file) return;
 
     if (!file.type.startsWith("image/")) {
       setSaveMessage("Please select a valid image file.");
@@ -332,13 +330,14 @@ const [logoutMessage, setLogoutMessage] = useState("");
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4 text-[var(--text)]">
         <div className="text-center">
-          <div
-            className="mx-auto mb-4 h-11 w-11 animate-spin rounded-full border-4 border-[var(--border)] border-t-[var(--primary)]"
-            aria-hidden="true"
-          />
+          <div className="mx-auto mb-5 h-12 w-12 animate-spin rounded-full border-4 border-[var(--border)] border-t-[var(--primary)]" />
 
-          <p className="text-sm font-medium">
+          <p className="text-sm font-semibold text-[var(--text-heading)]">
             Loading your dashboard...
+          </p>
+
+          <p className="mt-1 text-xs">
+            Preparing your SkillBridge workspace
           </p>
         </div>
       </div>
@@ -353,9 +352,9 @@ const [logoutMessage, setLogoutMessage] = useState("");
       <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4 text-[var(--text)]">
         <div
           role="alert"
-          className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center shadow-lg"
+          className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center shadow-xl"
         >
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10 text-2xl">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10 text-2xl">
             ⚠️
           </div>
 
@@ -367,7 +366,7 @@ const [logoutMessage, setLogoutMessage] = useState("");
 
           <Link
             to="/login"
-            className="mt-6 inline-flex items-center justify-center rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2"
+            className="mt-6 inline-flex items-center justify-center rounded-xl bg-[var(--primary)] px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
           >
             Back to Login
           </Link>
@@ -376,53 +375,50 @@ const [logoutMessage, setLogoutMessage] = useState("");
     );
   }
 
-  // =========================
-  // Dashboard
-  // =========================
   return (
-  <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-300">
 
-    {logoutMessage && (
-      <div
-        role="alert"
-        aria-live="polite"
-        className="fixed right-4 top-20 z-[100] flex w-[calc(100%-2rem)] max-w-sm items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3.5 shadow-xl"
-      >
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--primary)] text-sm font-bold text-white">
-          ✓
+      {/* Logout Toast */}
+      {logoutMessage && (
+        <div
+          role="alert"
+          aria-live="polite"
+          className="fixed right-4 top-20 z-[100] flex w-[calc(100%-2rem)] max-w-sm items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 shadow-2xl"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--primary)] text-sm font-bold text-white">
+            ✓
+          </div>
+
+          <div>
+            <p className="text-sm font-bold text-[var(--text-heading)]">
+              Logout Successful
+            </p>
+
+            <p className="mt-0.5 text-xs">
+              {logoutMessage}
+            </p>
+          </div>
         </div>
+      )}
 
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-[var(--text-heading)]">
-            Logout Successful
-          </p>
-
-          <p className="mt-0.5 text-xs">
-            {logoutMessage}
-          </p>
-        </div>
-      </div>
-    )}
-
-    <ThemeToggle />
-
-    {/* remaining  dashboard */}
+      <ThemeToggle />
 
       {/* =========================
           Navigation
       ========================= */}
-      <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]/95 shadow-sm backdrop-blur-xl">
         <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+
           <Link
             to="/"
             aria-label="SkillBridge home"
-            className="flex shrink-0 items-center gap-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+            className="flex shrink-0 items-center gap-2.5 rounded-xl"
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--primary)] text-lg font-bold text-white shadow-sm">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary)] text-lg font-bold text-white shadow-md">
               S
             </span>
 
-            <span className="text-xl font-bold tracking-tight text-[var(--text-heading)]">
+            <span className="text-xl font-extrabold tracking-tight text-[var(--text-heading)]">
               Skill<span className="text-[var(--primary)]">Bridge</span>
             </span>
           </Link>
@@ -433,62 +429,68 @@ const [logoutMessage, setLogoutMessage] = useState("");
           >
             <Link
               to="/skills"
-              className="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+              className="rounded-xl px-4 py-2.5 text-sm font-semibold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
             >
               Skills
             </Link>
 
             <Link
               to="/resources"
-              className="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+              className="rounded-xl px-4 py-2.5 text-sm font-semibold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
             >
               Resources
             </Link>
 
             <Link
               to="/career"
-              className="rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+              className="rounded-xl px-4 py-2.5 text-sm font-semibold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
             >
               Career
             </Link>
           </nav>
 
           <button
-  type="button"
-  onClick={handleLogout}
-  aria-label="Log out of SkillBridge"
-  className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[var(--primary-hover)] hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2"
->
-  Log out
-</button>
+            type="button"
+            onClick={handleLogout}
+            aria-label="Log out of SkillBridge"
+            className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--primary-hover)] hover:shadow-lg"
+          >
+            Log out
+          </button>
         </div>
       </header>
 
       {/* =========================
           Main
       ========================= */}
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-        {/* =========================
-            Welcome Hero
-        ========================= */}
-        <section className="relative overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
-          <div className="absolute -right-20 -top-20 h-52 w-52 rounded-full bg-[var(--primary-soft)] blur-3xl" />
+      <main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-11">
 
-          <div className="relative p-6 sm:p-8 lg:p-10">
-            <div className="flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center">
+        {/* =========================
+            Premium Hero
+        ========================= */}
+        <section className="relative overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] shadow-lg">
+
+          <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[var(--primary-soft)] blur-3xl" />
+          <div className="absolute -bottom-32 -left-24 h-64 w-64 rounded-full bg-[var(--primary-soft)] opacity-60 blur-3xl" />
+
+          <div className="relative p-6 sm:p-9 lg:p-11">
+
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+
+              <div className="flex min-w-0 flex-col gap-6 sm:flex-row sm:items-center">
+
                 {/* Avatar */}
                 <div className="shrink-0">
                   {avatarUrl ? (
                     <img
                       src={avatarUrl}
                       alt={`${fullName}'s profile`}
-                      className="h-20 w-20 rounded-2xl object-cover shadow-md ring-4 ring-[var(--primary-soft)] sm:h-24 sm:w-24"
+                      className="h-24 w-24 rounded-3xl object-cover shadow-xl ring-4 ring-[var(--primary-soft)] sm:h-28 sm:w-28"
                     />
                   ) : (
                     <div
                       aria-label={`${fullName}'s profile initials`}
-                      className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-3xl font-bold text-[var(--primary)] shadow-sm ring-4 ring-[var(--primary-soft)] sm:h-24 sm:w-24"
+                      className="flex h-24 w-24 items-center justify-center rounded-3xl bg-[var(--primary-soft)] text-4xl font-extrabold text-[var(--primary)] shadow-lg ring-4 ring-[var(--primary-soft)] sm:h-28 sm:w-28"
                     >
                       {avatarLetter}
                     </div>
@@ -496,34 +498,57 @@ const [logoutMessage, setLogoutMessage] = useState("");
                 </div>
 
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[var(--primary)]">
+
+                  <div className="inline-flex items-center gap-2 rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-xs font-bold text-[var(--primary)]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--primary)]" />
+                    PERSONAL DASHBOARD
+                  </div>
+
+                  <p className="mt-4 text-sm font-semibold text-[var(--primary)]">
                     Welcome back 👋
                   </p>
 
-                  <h1 className="mt-1 truncate text-3xl font-bold tracking-tight text-[var(--text-heading)] sm:text-4xl">
+                  <h1 className="mt-1 truncate text-3xl font-extrabold tracking-tight text-[var(--text-heading)] sm:text-4xl lg:text-5xl">
                     {fullName}
                   </h1>
 
-                  <p className="mt-2 text-sm">
+                  <p className="mt-2 text-sm font-medium">
                     @{user?.username}
                   </p>
 
                   {user?.bio && (
-                    <p className="mt-3 max-w-2xl text-sm leading-6">
+                    <p className="mt-4 max-w-2xl text-sm leading-7">
                       {user.bio}
                     </p>
                   )}
 
                   {user?.location && (
-                    <p className="mt-2 flex items-center gap-1.5 text-sm">
-                      <span aria-hidden="true">📍</span>
+                    <p className="mt-3 flex items-center gap-2 text-sm font-medium">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--primary-soft)]">
+                        📍
+                      </span>
                       {user.location}
                     </p>
                   )}
                 </div>
               </div>
 
-             
+              <div className="hidden lg:block">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] px-6 py-5 text-center shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-wider">
+                    Your Journey
+                  </p>
+
+                  <p className="mt-2 text-2xl font-extrabold text-[var(--primary)]">
+                    Keep Growing
+                  </p>
+
+                  <p className="mt-1 text-xs">
+                    Build skills. Shape your future.
+                  </p>
+                </div>
+              </div>
+
             </div>
           </div>
         </section>
@@ -535,10 +560,22 @@ const [logoutMessage, setLogoutMessage] = useState("");
           aria-label="Profile statistics"
           className="mt-6 grid gap-4 sm:grid-cols-3"
         >
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
-            <p className="text-sm font-medium">Skills</p>
+          <div className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-lg">
+                🎯
+              </div>
 
-            <p className="mt-2 text-3xl font-bold text-[var(--text-heading)]">
+              <span className="text-xs font-semibold text-[var(--primary)]">
+                PROFILE
+              </span>
+            </div>
+
+            <p className="mt-5 text-sm font-semibold">
+              Skills
+            </p>
+
+            <p className="mt-1 text-3xl font-extrabold text-[var(--text-heading)]">
               {skills.length}
             </p>
 
@@ -547,10 +584,22 @@ const [logoutMessage, setLogoutMessage] = useState("");
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
-            <p className="text-sm font-medium">Profile</p>
+          <div className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-lg">
+                ✨
+              </div>
 
-            <p className="mt-2 text-3xl font-bold text-[var(--text-heading)]">
+              <span className="text-xs font-semibold text-[var(--primary)]">
+                STATUS
+              </span>
+            </div>
+
+            <p className="mt-5 text-sm font-semibold">
+              Profile
+            </p>
+
+            <p className="mt-1 text-2xl font-extrabold text-[var(--text-heading)]">
               {user?.bio && user?.location ? "100%" : "In progress"}
             </p>
 
@@ -559,10 +608,22 @@ const [logoutMessage, setLogoutMessage] = useState("");
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
-            <p className="text-sm font-medium">Learning</p>
+          <div className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-lg">
+                🚀
+              </div>
 
-            <p className="mt-2 text-3xl font-bold text-[var(--text-heading)]">
+              <span className="text-xs font-semibold text-[var(--primary)]">
+                JOURNEY
+              </span>
+            </div>
+
+            <p className="mt-5 text-sm font-semibold">
+              Learning
+            </p>
+
+            <p className="mt-1 text-2xl font-extrabold text-[var(--text-heading)]">
               Ready
             </p>
 
@@ -573,141 +634,161 @@ const [logoutMessage, setLogoutMessage] = useState("");
         </section>
 
         {/* =========================
-            Quick Actions
+            Continue Learning
         ========================= */}
-        <section className="mt-8">
-          <div className="mb-4">
-            <h2 className="text-2xl font-bold text-[var(--text-heading)]">
-              Continue Learning
-            </h2>
+        <section className="mt-10">
 
-            <p className="mt-1 text-sm">
-              Explore SkillBridge features and build your career path.
-            </p>
+          <div className="mb-6">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-1 rounded-full bg-[var(--primary)]" />
+
+              <div>
+                <h2 className="text-2xl font-extrabold text-[var(--text-heading)]">
+                  Continue Learning
+                </h2>
+
+                <p className="mt-1 text-sm">
+                  Explore SkillBridge features and build your career path.
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="grid gap-5 md:grid-cols-3">
+
             {/* Skills */}
-            <article className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-xl transition group-hover:scale-105">
+            <article className="group rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl">
+              <div className="flex items-start justify-between">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-2xl transition group-hover:scale-105">
                   🎯
                 </div>
 
-                <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--primary)]">
-                  Skills
+                <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-xs font-bold text-[var(--primary)]">
+                  SKILLS
                 </span>
               </div>
 
-              <h3 className="mt-5 text-lg font-bold text-[var(--text-heading)]">
+              <h3 className="mt-6 text-xl font-extrabold text-[var(--text-heading)]">
                 My Skills
               </h3>
 
-              <p className="mt-2 text-sm leading-6">
+              <p className="mt-2 text-sm leading-7">
                 Add, explore and manage the skills you want to develop.
               </p>
 
               <Link
                 to="/skills"
-                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold !text-white transition hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2"
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-bold !text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)] hover:shadow-lg"
               >
                 Explore Skills
-                <span aria-hidden="true">→</span>
+                <span>→</span>
               </Link>
             </article>
 
             {/* Resources */}
-            <article className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-xl transition group-hover:scale-105">
+            <article className="group rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl">
+              <div className="flex items-start justify-between">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-2xl transition group-hover:scale-105">
                   📚
                 </div>
 
-                <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--primary)]">
-                  Learn
+                <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-xs font-bold text-[var(--primary)]">
+                  LEARN
                 </span>
               </div>
 
-              <h3 className="mt-5 text-lg font-bold text-[var(--text-heading)]">
+              <h3 className="mt-6 text-xl font-extrabold text-[var(--text-heading)]">
                 Learning Resources
               </h3>
 
-              <p className="mt-2 text-sm leading-6">
+              <p className="mt-2 text-sm leading-7">
                 Discover useful resources to improve your technical and
                 professional skills.
               </p>
 
               <Link
                 to="/resources"
-                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold !text-white transition hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2"
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-bold !text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)] hover:shadow-lg"
               >
                 Browse Resources
-                <span aria-hidden="true">→</span>
+                <span>→</span>
               </Link>
             </article>
 
             {/* Career */}
-            <article className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-xl transition group-hover:scale-105">
+            <article className="group rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl">
+              <div className="flex items-start justify-between">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-2xl transition group-hover:scale-105">
                   🚀
                 </div>
 
-                <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--primary)]">
-                  Career
+                <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-xs font-bold text-[var(--primary)]">
+                  CAREER
                 </span>
               </div>
 
-              <h3 className="mt-5 text-lg font-bold text-[var(--text-heading)]">
+              <h3 className="mt-6 text-xl font-extrabold text-[var(--text-heading)]">
                 Career Path
               </h3>
 
-              <p className="mt-2 text-sm leading-6">
+              <p className="mt-2 text-sm leading-7">
                 Explore career directions based on your interests and skills.
               </p>
 
               <Link
                 to="/career"
-                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold !text-white transition hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2"
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-bold !text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)] hover:shadow-lg"
               >
                 Explore Career
-                <span aria-hidden="true">→</span>
+                <span>→</span>
               </Link>
             </article>
+
           </div>
         </section>
 
         {/* =========================
             Skills Preview
         ========================= */}
-        <section className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm sm:p-8">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-[var(--text-heading)]">
-                Skills Preview
-              </h2>
+        <section className="mt-10 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm sm:p-8">
 
-              <p className="mt-1 text-sm">
-                A quick look at the skills connected to your profile.
-              </p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+            <div>
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--primary-soft)]">
+                  🎯
+                </div>
+
+                <div>
+                  <h2 className="text-xl font-extrabold text-[var(--text-heading)]">
+                    Skills Preview
+                  </h2>
+
+                  <p className="mt-1 text-sm">
+                    A quick look at the skills connected to your profile.
+                  </p>
+                </div>
+              </div>
             </div>
 
             <Link
               to="/skills"
-className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold !text-white shadow-sm transition-all duration-200 hover:bg-[var(--primary-hover)] hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"            >
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-bold !text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)] hover:shadow-lg"
+            >
               Manage Skills
-              <span aria-hidden="true">→</span>
+              <span>→</span>
             </Link>
           </div>
 
           {skills.length > 0 ? (
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-7 flex flex-wrap gap-3">
               {skills.slice(0, 8).map((skill) => (
                 <div
                   key={skill.id}
-                  className="rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 transition hover:border-[var(--primary)] hover:shadow-sm"
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] px-5 py-3.5 transition hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow-md"
                 >
-                  <p className="text-sm font-semibold text-[var(--text-heading)]">
+                  <p className="text-sm font-bold text-[var(--text-heading)]">
                     {skill.name}
                   </p>
 
@@ -722,22 +803,19 @@ className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)
               {skills.length > 8 && (
                 <Link
                   to="/skills"
-                  className="flex items-center rounded-xl border border-dashed border-[var(--border)] px-4 py-3 text-sm font-semibold text-[var(--primary)] transition hover:border-[var(--primary)]"
+                  className="flex items-center rounded-2xl border border-dashed border-[var(--border)] px-5 py-3.5 text-sm font-bold text-[var(--primary)] transition hover:border-[var(--primary)]"
                 >
                   +{skills.length - 8} more
                 </Link>
               )}
             </div>
           ) : (
-            <div className="mt-6 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg)] p-8 text-center">
-              <div
-                className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-xl"
-                aria-hidden="true"
-              >
+            <div className="mt-7 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg)] p-10 text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-2xl">
                 🎯
               </div>
 
-              <h3 className="mt-4 font-semibold text-[var(--text-heading)]">
+              <h3 className="mt-5 font-bold text-[var(--text-heading)]">
                 No skills added yet
               </h3>
 
@@ -748,7 +826,7 @@ className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)
 
               <Link
                 to="/skills"
-                className="mt-5 inline-flex rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold !text-white transition hover:bg-[var(--primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                className="mt-6 inline-flex rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-bold !text-white shadow-md transition hover:bg-[var(--primary-hover)]"
               >
                 Add Your First Skill
               </Link>
@@ -759,46 +837,56 @@ className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)
         {/* =========================
             Profile Information
         ========================= */}
-        <section className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm sm:p-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-[var(--text-heading)]">
-                Profile Information
-              </h2>
+        <section className="mt-10 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm sm:p-8">
 
-              <p className="mt-1 text-sm">
-                Keep your SkillBridge profile up to date.
-              </p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+            <div>
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--primary-soft)]">
+                  👤
+                </div>
+
+                <div>
+                  <h2 className="text-xl font-extrabold text-[var(--text-heading)]">
+                    Profile Information
+                  </h2>
+
+                  <p className="mt-1 text-sm">
+                    Keep your SkillBridge profile up to date.
+                  </p>
+                </div>
+              </div>
             </div>
 
             {!editMode && (
-             <button
-  type="button"
-  onClick={handleEditProfile}
-  className="inline-flex w-full items-center justify-center rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[var(--primary-hover)] hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2 sm:w-auto"
->
-  Edit Profile
-</button>
+              <button
+                type="button"
+                onClick={handleEditProfile}
+                className="inline-flex w-full items-center justify-center rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)] hover:shadow-lg sm:w-auto"
+              >
+                Edit Profile
+              </button>
             )}
           </div>
 
-          {/* =========================
-              Edit Form
-          ========================= */}
+          {/* Edit Form */}
           {editMode ? (
-            <div className="mt-6 space-y-5">
+            <div className="mt-7 space-y-6">
+
               {/* Profile Picture */}
               <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5">
-                <p className="mb-4 text-sm font-semibold text-[var(--text-heading)]">
+                <p className="mb-4 text-sm font-bold text-[var(--text-heading)]">
                   Profile Picture
                 </p>
 
-                <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+                <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
+
                   {avatarUrl ? (
                     <img
                       src={avatarUrl}
                       alt="Profile preview"
-                      className="h-24 w-24 rounded-2xl object-cover shadow-sm"
+                      className="h-24 w-24 rounded-2xl object-cover shadow-lg"
                     />
                   ) : (
                     <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-3xl font-bold text-[var(--primary)]">
@@ -809,7 +897,7 @@ className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)
                   <div>
                     <label
                       htmlFor="profile_picture"
-                      className="inline-flex cursor-pointer rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)] focus-within:ring-2 focus-within:ring-[var(--primary)]"
+                      className="inline-flex cursor-pointer rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[var(--primary-hover)]"
                     >
                       Choose Picture
                     </label>
@@ -828,7 +916,7 @@ className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)
                     </p>
 
                     {selectedImage && (
-                      <p className="mt-1 text-xs font-medium text-[var(--primary)]">
+                      <p className="mt-1 text-xs font-semibold text-[var(--primary)]">
                         Selected: {selectedImage.name}
                       </p>
                     )}
@@ -838,10 +926,11 @@ className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)
 
               {/* Names */}
               <div className="grid gap-5 sm:grid-cols-2">
+
                 <div>
                   <label
                     htmlFor="first_name"
-                    className="mb-2 block text-sm font-semibold text-[var(--text-heading)]"
+                    className="mb-2 block text-sm font-bold text-[var(--text-heading)]"
                   >
                     First Name
                   </label>
@@ -854,14 +943,14 @@ className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)
                     onChange={handleEditChange}
                     placeholder="Enter your first name"
                     autoComplete="given-name"
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:text-[var(--text)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:text-[var(--text)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary-soft)]"
                   />
                 </div>
 
                 <div>
                   <label
                     htmlFor="last_name"
-                    className="mb-2 block text-sm font-semibold text-[var(--text-heading)]"
+                    className="mb-2 block text-sm font-bold text-[var(--text-heading)]"
                   >
                     Last Name
                   </label>
@@ -874,7 +963,7 @@ className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)
                     onChange={handleEditChange}
                     placeholder="Enter your last name"
                     autoComplete="family-name"
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:text-[var(--text)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:text-[var(--text)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary-soft)]"
                   />
                 </div>
               </div>
@@ -883,7 +972,7 @@ className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)
               <div>
                 <label
                   htmlFor="email"
-                  className="mb-2 block text-sm font-semibold text-[var(--text-heading)]"
+                  className="mb-2 block text-sm font-bold text-[var(--text-heading)]"
                 >
                   Email
                 </label>
@@ -896,7 +985,7 @@ className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)
                   onChange={handleEditChange}
                   placeholder="Enter your email"
                   autoComplete="email"
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:text-[var(--text)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
+                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:text-[var(--text)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary-soft)]"
                 />
               </div>
 
@@ -904,7 +993,7 @@ className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)
               <div>
                 <label
                   htmlFor="location"
-                  className="mb-2 block text-sm font-semibold text-[var(--text-heading)]"
+                  className="mb-2 block text-sm font-bold text-[var(--text-heading)]"
                 >
                   Location
                 </label>
@@ -917,7 +1006,7 @@ className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)
                   onChange={handleEditChange}
                   placeholder="Add your location"
                   autoComplete="address-level2"
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:text-[var(--text)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
+                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:text-[var(--text)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary-soft)]"
                 />
               </div>
 
@@ -925,7 +1014,7 @@ className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)
               <div>
                 <label
                   htmlFor="bio"
-                  className="mb-2 block text-sm font-semibold text-[var(--text-heading)]"
+                  className="mb-2 block text-sm font-bold text-[var(--text-heading)]"
                 >
                   Bio
                 </label>
@@ -937,17 +1026,18 @@ className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)
                   onChange={handleEditChange}
                   rows={4}
                   placeholder="Tell us a little about yourself..."
-                  className="w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:text-[var(--text)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)]"
+                  className="w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:text-[var(--text)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary-soft)]"
                 />
               </div>
 
               {/* Actions */}
               <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center">
+
                 <button
                   type="button"
                   onClick={handleSaveProfile}
                   disabled={saving}
-                  className="rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--primary-hover)] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[var(--primary)] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-xl bg-[var(--primary)] px-6 py-3 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)] hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {saving ? "Saving..." : "Save Changes"}
                 </button>
@@ -956,7 +1046,7 @@ className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)
                   type="button"
                   onClick={handleCancelEdit}
                   disabled={saving}
-                  className="rounded-xl border border-[var(--border)] px-5 py-3 text-sm font-semibold text-[var(--text-heading)] transition hover:border-[var(--primary)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-xl border border-[var(--border)] px-6 py-3 text-sm font-bold text-[var(--text-heading)] transition hover:border-[var(--primary)] hover:text-[var(--primary)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Cancel
                 </button>
@@ -965,7 +1055,7 @@ className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)
                   <p
                     role="status"
                     aria-live="polite"
-                    className={`text-sm font-medium ${
+                    className={`text-sm font-semibold ${
                       saveMessage.includes("successfully")
                         ? "text-[var(--primary)]"
                         : "text-red-500"
@@ -977,75 +1067,68 @@ className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)
               </div>
             </div>
           ) : (
-            /* =========================
-               Profile Display
-            ========================= */
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              {/* Username */}
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide">
+            /* Profile Display */
+            <div className="mt-7 grid gap-4 sm:grid-cols-2">
+
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5 transition hover:shadow-md">
+                <p className="text-xs font-bold uppercase tracking-wider">
                   Username
                 </p>
 
-                <p className="mt-1 break-words font-medium text-[var(--text-heading)]">
+                <p className="mt-2 break-words font-bold text-[var(--text-heading)]">
                   @{user?.username}
                 </p>
               </div>
 
-              {/* Email */}
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide">
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5 transition hover:shadow-md">
+                <p className="text-xs font-bold uppercase tracking-wider">
                   Email
                 </p>
 
-                <p className="mt-1 break-words font-medium text-[var(--text-heading)]">
+                <p className="mt-2 break-words font-bold text-[var(--text-heading)]">
                   {user?.email || "Not available"}
                 </p>
               </div>
 
-              {/* Location */}
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide">
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5 transition hover:shadow-md">
+                <p className="text-xs font-bold uppercase tracking-wider">
                   Location
                 </p>
 
-                <p className="mt-1 font-medium text-[var(--text-heading)]">
+                <p className="mt-2 font-bold text-[var(--text-heading)]">
                   {user?.location || "Not added yet"}
                 </p>
               </div>
 
-              {/* Name */}
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide">
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5 transition hover:shadow-md">
+                <p className="text-xs font-bold uppercase tracking-wider">
                   Full Name
                 </p>
 
-                <p className="mt-1 font-medium text-[var(--text-heading)]">
+                <p className="mt-2 font-bold text-[var(--text-heading)]">
                   {fullName}
                 </p>
               </div>
 
-              {/* Bio */}
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4 sm:col-span-2">
-                <p className="text-xs font-semibold uppercase tracking-wide">
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5 sm:col-span-2">
+                <p className="text-xs font-bold uppercase tracking-wider">
                   Bio
                 </p>
 
-                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[var(--text-heading)]">
+                <p className="mt-2 whitespace-pre-line text-sm leading-7 text-[var(--text-heading)]">
                   {user?.bio || "No bio added yet."}
                 </p>
               </div>
             </div>
           )}
 
-          {/* Success Message */}
           {!editMode && saveMessage && (
             <p
               role="status"
               aria-live="polite"
-              className="mt-4 text-sm font-medium text-[var(--primary)]"
+              className="mt-5 rounded-xl bg-[var(--primary-soft)] px-4 py-3 text-sm font-semibold text-[var(--primary)]"
             >
-              {saveMessage}
+              ✓ {saveMessage}
             </p>
           )}
         </section>
@@ -1053,36 +1136,39 @@ className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)
         {/* =========================
             Mobile Navigation
         ========================= */}
-        <section className="mt-8 md:hidden">
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
-            <p className="mb-3 text-sm font-semibold text-[var(--text-heading)]">
+        <section className="mt-10 md:hidden">
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
+
+            <p className="mb-4 text-sm font-bold text-[var(--text-heading)]">
               Quick Navigation
             </p>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-3">
+
               <Link
                 to="/skills"
-                className="rounded-xl border border-[var(--border)] px-3 py-3 text-center text-xs font-semibold transition hover:border-[var(--primary)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] px-3 py-4 text-center text-xs font-bold transition hover:border-[var(--primary)] hover:text-[var(--primary)]"
               >
-                🎯
-                <span className="mt-1 block">Skills</span>
+                <span className="text-lg">🎯</span>
+                <span className="mt-2 block">Skills</span>
               </Link>
 
               <Link
                 to="/resources"
-                className="rounded-xl border border-[var(--border)] px-3 py-3 text-center text-xs font-semibold transition hover:border-[var(--primary)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] px-3 py-4 text-center text-xs font-bold transition hover:border-[var(--primary)] hover:text-[var(--primary)]"
               >
-                📚
-                <span className="mt-1 block">Resources</span>
+                <span className="text-lg">📚</span>
+                <span className="mt-2 block">Resources</span>
               </Link>
 
               <Link
                 to="/career"
-                className="rounded-xl border border-[var(--border)] px-3 py-3 text-center text-xs font-semibold transition hover:border-[var(--primary)] hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] px-3 py-4 text-center text-xs font-bold transition hover:border-[var(--primary)] hover:text-[var(--primary)]"
               >
-                🚀
-                <span className="mt-1 block">Career</span>
+                <span className="text-lg">🚀</span>
+                <span className="mt-2 block">Career</span>
               </Link>
+
             </div>
           </div>
         </section>
@@ -1091,9 +1177,15 @@ className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)
       {/* =========================
           Footer
       ========================= */}
-      <footer className="border-t border-[var(--border)] py-6">
+      <footer className="mt-4 border-t border-[var(--border)] bg-[var(--surface)] py-7">
         <div className="mx-auto max-w-7xl px-4 text-center text-xs sm:px-6 lg:px-8">
-          © {new Date().getFullYear()} SkillBridge. Keep learning, keep growing.
+          <p className="font-medium">
+            © {new Date().getFullYear()} SkillBridge.
+          </p>
+
+          <p className="mt-1">
+            Keep learning, keep growing.
+          </p>
         </div>
       </footer>
     </div>
