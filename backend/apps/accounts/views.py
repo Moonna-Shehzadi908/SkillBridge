@@ -1,3 +1,4 @@
+
 from rest_framework import generics, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -80,6 +81,14 @@ class UserSkillsView(APIView):
                 status=404,
             )
 
+        if request.user.skills.filter(id=skill.id).exists():
+            return Response(
+                {
+                    "error": "You have already added this skill."
+                },
+                status=400,
+            )
+
         request.user.skills.add(skill)
 
         return Response(
@@ -108,6 +117,12 @@ class RemoveUserSkillView(APIView):
         except Skill.DoesNotExist:
             return Response(
                 {"error": "Skill not found."},
+                status=404,
+            )
+
+        if not request.user.skills.filter(id=skill.id).exists():
+            return Response(
+                {"error": "This skill is not in your profile."},
                 status=404,
             )
 

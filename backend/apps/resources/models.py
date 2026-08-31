@@ -1,3 +1,4 @@
+
 from django.db import models
 
 from apps.skills.models import Skill
@@ -38,6 +39,8 @@ class Resource(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        verbose_name = "Learning Resource"
+        verbose_name_plural = "Learning Resources"
 
     def __str__(self):
         return self.title

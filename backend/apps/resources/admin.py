@@ -1,3 +1,4 @@
+
 from django.contrib import admin
 
 from .models import Resource
@@ -7,15 +8,10 @@ from .models import Resource
 class ResourceAdmin(admin.ModelAdmin):
     list_display = (
         "title",
-        "resource_type",
         "skill",
+        "resource_type",
         "created_at",
         "updated_at",
-    )
-
-    list_filter = (
-        "resource_type",
-        "skill",
     )
 
     search_fields = (
@@ -24,4 +20,16 @@ class ResourceAdmin(admin.ModelAdmin):
         "skill__name",
     )
 
-    ordering = ("-created_at",)
+    list_filter = (
+        "resource_type",
+        "skill",
+    )
+
+    ordering = (
+        "-created_at",
+    )
+
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+    )
