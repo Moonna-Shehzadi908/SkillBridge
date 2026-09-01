@@ -5,6 +5,14 @@ from rest_framework import generics, permissions
 
 from .models import Resource
 from .serializers import ResourceSerializer
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from .serializers import (
+    ResourceSerializer,
+    ResourceRecommendationSerializer,
+)
+from .services import get_recommended_resources
 
 
 class ResourceListCreateView(generics.ListCreateAPIView):
@@ -54,3 +62,38 @@ class ResourceDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Resource.objects.select_related("skill").all()
     serializer_class = ResourceSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+class ResourceRecommendationView(APIView):
+    """
+    Return personalized learning resources for
+    the currently authenticated user.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        # Ask the service layer to calculate personalized
+        # resources based on the user's selected skills.
+        recommendations = get_recommended_resources(
+            request.user
+        )
+
+        data = []
+
+        for recommendation in recommendations:
+            # Serialize the actual Resource object.
+            serializer = ResourceRecommendationSerializer(
+                recommendation["resource"]
+            )
+
+            item = serializer.data
+
+            # These two values are calculated by the
+            # recommendation service rather than stored
+            # permanently in the database.
+            item["match_score"] = recommendation["match_score"]
+            item["reason"] = recommendation["reason"]
+
+            data.append(item)
+
+        return Response(data)

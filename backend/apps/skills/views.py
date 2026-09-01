@@ -2,9 +2,15 @@
 from django.db.models import Q
 
 from rest_framework import generics, permissions
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .models import Skill
-from .serializers import SkillSerializer
+from .serializers import (
+    SkillSerializer,
+    SkillRecommendationSerializer,
+)
+from .services import get_recommendations
 
 
 class SkillListCreateView(generics.ListCreateAPIView):
@@ -64,3 +70,29 @@ class SkillDetailView(generics.RetrieveUpdateDestroyAPIView):
             return [permissions.IsAdminUser()]
 
         return [permissions.IsAuthenticated()]
+class SkillRecommendationView(APIView):
+    """
+    Return smart skill recommendations for the
+    currently authenticated user.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        recommendations = get_recommendations(request.user)
+
+        data = []
+
+        for recommendation in recommendations:
+            serializer = SkillRecommendationSerializer(
+                recommendation["skill"]
+            )
+
+            item = serializer.data
+
+            item["match_score"] = recommendation["match_score"]
+            item["reason"] = recommendation["reason"]
+
+            data.append(item)
+
+        return Response(data)

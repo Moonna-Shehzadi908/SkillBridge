@@ -48,9 +48,9 @@ function Dashboard() {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
 
-  // =========================
+  // =========================================================
   // Fetch Current User
-  // =========================
+  // =========================================================
   useEffect(() => {
     const fetchUser = async () => {
       const token = localStorage.getItem("access_token");
@@ -104,9 +104,9 @@ function Dashboard() {
     fetchUser();
   }, [navigate]);
 
-  // =========================
+  // =========================================================
   // Logout
-  // =========================
+  // =========================================================
   const handleLogout = () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
@@ -118,9 +118,9 @@ function Dashboard() {
     }, 1200);
   };
 
-  // =========================
+  // =========================================================
   // Edit Input Change
-  // =========================
+  // =========================================================
   const handleEditChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
@@ -132,9 +132,9 @@ function Dashboard() {
     }));
   };
 
-  // =========================
+  // =========================================================
   // Image Change
-  // =========================
+  // =========================================================
   const handleImageChange = (
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
@@ -163,9 +163,9 @@ function Dashboard() {
     setImagePreview(previewUrl);
   };
 
-  // =========================
+  // =========================================================
   // Open Edit Mode
-  // =========================
+  // =========================================================
   const handleEditProfile = () => {
     if (!user) return;
 
@@ -181,7 +181,6 @@ function Dashboard() {
     setSaveMessage("");
     setEditMode(true);
 
-    // Scroll to Profile Information after opening edit mode
     setTimeout(() => {
       document
         .getElementById("profile-information")
@@ -192,9 +191,9 @@ function Dashboard() {
     }, 100);
   };
 
-  // =========================
+  // =========================================================
   // Cancel Edit
-  // =========================
+  // =========================================================
   const handleCancelEdit = () => {
     if (!user) return;
 
@@ -216,9 +215,9 @@ function Dashboard() {
     setEditMode(false);
   };
 
-  // =========================
+  // =========================================================
   // Save Profile
-  // =========================
+  // =========================================================
   const handleSaveProfile = async () => {
     const token = localStorage.getItem("access_token");
 
@@ -297,7 +296,6 @@ function Dashboard() {
       setEditMode(false);
       setSaveMessage("Profile updated successfully.");
 
-      // Return to profile section
       setTimeout(() => {
         document
           .getElementById("profile-information")
@@ -317,9 +315,9 @@ function Dashboard() {
     }
   };
 
-  // =========================
+  // =========================================================
   // Display Values
-  // =========================
+  // =========================================================
   const fullName = useMemo(() => {
     if (!user) return "User";
 
@@ -343,6 +341,9 @@ function Dashboard() {
 
   const skills = user?.skills || [];
 
+  // =========================================================
+  // Profile Completion
+  // =========================================================
   const profileCompletion =
     (user?.first_name ? 20 : 0) +
     (user?.last_name ? 15 : 0) +
@@ -351,9 +352,103 @@ function Dashboard() {
     (user?.location ? 15 : 0) +
     (user?.profile_picture ? 15 : 0);
 
-  // =========================
+  // =========================================================
+  // AI / Smart Career Readiness
+  // Frontend-only for now — no backend changes required.
+  // =========================================================
+  const careerReadiness = useMemo(() => {
+    let score = profileCompletion;
+
+    if (skills.length >= 3) {
+      score += 5;
+    }
+
+    if (skills.length >= 5) {
+      score += 5;
+    }
+
+    if (user?.bio && user.bio.length >= 80) {
+      score += 5;
+    }
+
+    return Math.min(score, 100);
+  }, [profileCompletion, skills.length, user?.bio]);
+
+  const smartInsight = useMemo(() => {
+    if (!user) {
+      return {
+        title: "Let's build your career profile",
+        message:
+          "Complete your profile and add skills to unlock personalized career guidance.",
+        action: "Complete Profile",
+        icon: "✨",
+      };
+    }
+
+    if (profileCompletion < 50) {
+      return {
+        title: "Your profile needs attention",
+        message:
+          "A stronger profile helps SkillBridge understand your goals and provide better career recommendations.",
+        action: "Complete Profile",
+        icon: "🧠",
+      };
+    }
+
+    if (skills.length === 0) {
+      return {
+        title: "Start with your skills",
+        message:
+          "Add the technologies and abilities you already have. This will help shape your future career recommendations.",
+        action: "Add Skills",
+        icon: "🎯",
+      };
+    }
+
+    if (skills.length < 3) {
+      return {
+        title: "Build a stronger skill set",
+        message:
+          "You have started well. Add a few more relevant skills to create a stronger career foundation.",
+        action: "Explore Skills",
+        icon: "🚀",
+      };
+    }
+
+    if (!user.bio) {
+      return {
+        title: "Tell SkillBridge about you",
+        message:
+          "Add a short professional bio so future career guidance can better understand your interests.",
+        action: "Update Profile",
+        icon: "💡",
+      };
+    }
+
+    return {
+      title: "You're building momentum",
+      message:
+        "Your profile has a solid foundation. The next step is to explore career paths that match your skills and interests.",
+      action: "Explore Career",
+      icon: "✨",
+    };
+  }, [user, profileCompletion, skills.length]);
+
+  // =========================================================
+  // AI Readiness Label
+  // =========================================================
+  const readinessLabel =
+    careerReadiness >= 90
+      ? "Excellent"
+      : careerReadiness >= 75
+        ? "Strong"
+        : careerReadiness >= 50
+          ? "Growing"
+          : "Getting Started";
+
+  // =========================================================
   // Loading
-  // =========================
+  // =========================================================
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4 text-[var(--text)]">
@@ -372,9 +467,9 @@ function Dashboard() {
     );
   }
 
-  // =========================
+  // =========================================================
   // Error
-  // =========================
+  // =========================================================
   if (error) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4 text-[var(--text)]">
@@ -405,13 +500,21 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[var(--bg)] text-[var(--text)] transition-colors duration-300">
-      {/* Background Decoration */}
+
+      {/* =====================================================
+          BACKGROUND DECORATION
+      ====================================================== */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute -left-40 top-20 h-96 w-96 rounded-full bg-[var(--primary-soft)] opacity-30 blur-3xl" />
+
         <div className="absolute -right-40 top-[35%] h-96 w-96 rounded-full bg-[var(--primary-soft)] opacity-20 blur-3xl" />
+
+        <div className="absolute left-[40%] top-[75%] h-72 w-72 rounded-full bg-[var(--primary-soft)] opacity-10 blur-3xl" />
       </div>
 
-      {/* Logout Toast */}
+      {/* =====================================================
+          LOGOUT TOAST
+      ====================================================== */}
       {logoutMessage && (
         <div
           role="alert"
@@ -434,11 +537,12 @@ function Dashboard() {
 
       <ThemeToggle />
 
-      {/* =========================
-          Navigation
-      ========================== */}
+      {/* =====================================================
+          NAVIGATION
+      ====================================================== */}
       <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]/80 shadow-sm backdrop-blur-2xl">
         <div className="mx-auto flex min-h-[72px] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+
           <Link
             to="/"
             aria-label="SkillBridge home"
@@ -490,35 +594,32 @@ function Dashboard() {
         </div>
       </header>
 
-      {/* =========================
-          Main
-      ========================== */}
+      {/* =====================================================
+          MAIN
+      ====================================================== */}
       <main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
 
-        {/* =========================
+        {/* ===================================================
             PREMIUM HERO
-        ========================== */}
+        ==================================================== */}
         <section className="group relative overflow-hidden rounded-[2.5rem] border border-[var(--border)] bg-[var(--surface)] shadow-xl">
 
-          {/* Main glow */}
           <div className="absolute -right-40 -top-40 h-[28rem] w-[28rem] rounded-full bg-[var(--primary-soft)] opacity-60 blur-3xl transition-all duration-700 group-hover:scale-110" />
 
-<div className="absolute -bottom-56 -left-44 h-80 w-80 rounded-full bg-[var(--primary-soft)] opacity-30 blur-3xl" />
-          {/* Decorative rings */}
+          <div className="absolute -bottom-56 -left-44 h-80 w-80 rounded-full bg-[var(--primary-soft)] opacity-30 blur-3xl" />
+
           <div className="pointer-events-none absolute right-10 top-10 hidden h-36 w-36 rounded-full border border-[var(--primary)]/10 lg:block" />
 
           <div className="pointer-events-none absolute right-20 top-20 hidden h-16 w-16 rounded-full border border-[var(--primary)]/20 bg-[var(--primary-soft)] lg:block" />
 
           <div className="relative grid gap-8 p-6 sm:p-9 lg:grid-cols-[1fr_320px] lg:p-12">
 
-            {/* Left Hero Content */}
+            {/* Hero Content */}
             <div className="flex min-w-0 flex-col justify-center">
-
               <div className="flex flex-col gap-7 sm:flex-row sm:items-center">
 
                 {/* Avatar */}
                 <div className="relative shrink-0">
-
                   <button
                     type="button"
                     onClick={handleEditProfile}
@@ -533,19 +634,15 @@ function Dashboard() {
                         className="h-28 w-28 rounded-[2rem] object-cover shadow-2xl ring-4 ring-[var(--primary-soft)] transition-all duration-300 group-hover/avatar:scale-[1.04] group-hover/avatar:ring-[var(--primary)]/30 sm:h-32 sm:w-32"
                       />
                     ) : (
-                      <div
-                        className="flex h-28 w-28 items-center justify-center rounded-[2rem] bg-[var(--primary-soft)] text-5xl font-extrabold text-[var(--primary)] shadow-2xl ring-4 ring-[var(--primary-soft)] transition-all duration-300 group-hover/avatar:scale-[1.04] group-hover/avatar:ring-[var(--primary)]/30 sm:h-32 sm:w-32"
-                      >
+                      <div className="flex h-28 w-28 items-center justify-center rounded-[2rem] bg-[var(--primary-soft)] text-5xl font-extrabold text-[var(--primary)] shadow-2xl ring-4 ring-[var(--primary-soft)] transition-all duration-300 group-hover/avatar:scale-[1.04] group-hover/avatar:ring-[var(--primary)]/30 sm:h-32 sm:w-32">
                         {avatarLetter}
                       </div>
                     )}
 
-                    {/* Edit icon */}
                     <span className="absolute -bottom-2 -right-2 flex h-10 w-10 items-center justify-center rounded-xl border-4 border-[var(--surface)] bg-[var(--primary)] text-base text-white shadow-xl transition-all duration-300 group-hover/avatar:scale-110 group-hover/avatar:rotate-6">
                       ✎
                     </span>
                   </button>
-
                 </div>
 
                 {/* Hero Text */}
@@ -583,9 +680,7 @@ function Dashboard() {
                     </p>
                   )}
 
-                  {/* TOP UPDATE PROFILE BUTTON */}
                   <div className="mt-6 flex flex-wrap items-center gap-3">
-
                     <button
                       type="button"
                       onClick={handleEditProfile}
@@ -605,75 +700,178 @@ function Dashboard() {
                     <span className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/70 px-4 py-3 text-xs font-semibold backdrop-blur">
                       Keep your profile up to date
                     </span>
-
                   </div>
                 </div>
               </div>
             </div>
 
-{/* Profile Completion */}
-<div className="relative z-10 flex max-h-[230px] flex-col justify-between rounded-[1.75rem] border border-[var(--border)] bg-[var(--bg)]/85 p-4 shadow-lg backdrop-blur-xl sm:p-5">
+            {/* Profile Completion */}
+            <div className="relative z-10 flex max-h-[230px] flex-col justify-between rounded-[1.75rem] border border-[var(--border)] bg-[var(--bg)]/85 p-4 shadow-lg backdrop-blur-xl sm:p-5">
 
-  <div>
-    <div className="flex items-center justify-between gap-2"> 
+              <div>
+                <div className="flex items-center justify-between gap-2">
 
-      <div className="min-w-0">
-        <p className="text-[9px] font-extrabold uppercase tracking-[0.16em] text-[var(--primary)]">
-          Profile
-        </p>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-extrabold uppercase tracking-[0.16em] text-[var(--primary)]">
+                      Profile
+                    </p>
 
-        <p className="mt-0.5 text-base font-extrabold text-[var(--text-heading)]">
-          Completion
-        </p>
-      </div>
+                    <p className="mt-0.5 text-base font-extrabold text-[var(--text-heading)]">
+                      Completion
+                    </p>
+                  </div>
 
-      {/* Percentage */}
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-xs font-extrabold text-[var(--primary)] shadow-sm">
-        {profileCompletion}%
-      </div>
-    </div>
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-xs font-extrabold text-[var(--primary)] shadow-sm">
+                    {profileCompletion}%
+                  </div>
+                </div>
 
-    {/* Progress Bar */}
-    <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--border)]">
-      <div
-        className="h-full rounded-full bg-[var(--primary)] transition-all duration-700 ease-out"
-        style={{ width: `${profileCompletion}%` }}
-      />
-    </div>
+                <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--border)]">
+                  <div
+                    className="h-full rounded-full bg-[var(--primary)] transition-all duration-700 ease-out"
+                    style={{ width: `${profileCompletion}%` }}
+                  />
+                </div>
 
-    {/* Message */}
-    <p className="mt-2.5 text-[11px] leading-5 opacity-70">
-      {profileCompletion === 100
-        ? "Your profile is complete. Great work!"
-        : "Complete your profile to strengthen your learning journey."}
-    </p>
-  </div>
+                <p className="mt-2.5 text-[11px] leading-5 opacity-70">
+                  {profileCompletion === 100
+                    ? "Your profile is complete. Great work!"
+                    : "Complete your profile to strengthen your learning journey."}
+                </p>
+              </div>
 
-  {/* Status */}
-  <div className="mt-2 flex items-center justify-between border-t border-[var(--border)] pt-1.5">
-    <span className="text-[9px] font-bold uppercase tracking-wider opacity-60">
-      Status
-    </span>
+              <div className="mt-2 flex items-center justify-between border-t border-[var(--border)] pt-1.5">
+                <span className="text-[9px] font-bold uppercase tracking-wider opacity-60">
+                  Status
+                </span>
 
-    <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-[9px] font-extrabold text-[var(--primary)]">
-      {profileCompletion === 100 ? "Complete" : "In Progress"}
-    </span>
-  </div>
-
-</div>
-
-
-</div>
-            
-          
+                <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-[9px] font-extrabold text-[var(--primary)]">
+                  {profileCompletion === 100 ? "Complete" : "In Progress"}
+                </span>
+              </div>
+            </div>
+          </div>
         </section>
 
-        {/* =========================
+        {/* ===================================================
+            SMART AI CAREER INSIGHT
+        ==================================================== */}
+        <section className="relative mt-6 overflow-hidden rounded-[2rem] border border-[var(--primary)]/20 bg-[var(--surface)] shadow-lg">
+
+          <div className="absolute -right-20 -top-20 h-48 w-48 rounded-full bg-[var(--primary-soft)] opacity-60 blur-3xl" />
+
+          <div className="absolute -bottom-24 -left-20 h-48 w-48 rounded-full bg-[var(--primary-soft)] opacity-30 blur-3xl" />
+
+          <div className="relative grid gap-6 p-6 sm:p-8 lg:grid-cols-[1fr_250px] lg:items-center">
+
+            <div className="flex items-start gap-4">
+
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--primary)] text-2xl text-white shadow-lg">
+                🤖
+              </div>
+
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
+                    Smart Career Insight
+                  </span>
+
+                  <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-[9px] font-extrabold text-[var(--primary)]">
+                    AI READY
+                  </span>
+                </div>
+
+                <h2 className="mt-2 text-xl font-extrabold text-[var(--text-heading)] sm:text-2xl">
+                  {smartInsight.title}
+                </h2>
+
+                <p className="mt-2 max-w-2xl text-sm leading-6 opacity-75">
+                  {smartInsight.message}
+                </p>
+
+                <div className="mt-5 flex flex-wrap gap-3">
+
+                  {smartInsight.action === "Add Skills" ||
+                  smartInsight.action === "Explore Skills" ? (
+                    <Link
+                      to="/skills"
+                      className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-bold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-[var(--primary-hover)] hover:shadow-lg"
+                    >
+                      {smartInsight.action}
+                      <span>→</span>
+                    </Link>
+                  ) : smartInsight.action === "Explore Career" ? (
+                    <Link
+                      to="/career"
+                      className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-bold !text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-[var(--primary-hover)] hover:shadow-lg"
+                    >
+                      Explore Career
+                      <span>→</span>
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleEditProfile}
+                      className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-bold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-[var(--primary-hover)] hover:shadow-lg"
+                    >
+                      {smartInsight.action}
+                      <span>→</span>
+                    </button>
+                  )}
+
+                </div>
+              </div>
+            </div>
+
+            {/* AI Readiness */}
+            <div className="rounded-[1.5rem] border border-[var(--border)] bg-[var(--bg)] p-5">
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] font-extrabold uppercase tracking-[0.16em] text-[var(--primary)]">
+                    Career
+                  </p>
+
+                  <p className="mt-1 text-sm font-extrabold text-[var(--text-heading)]">
+                    Readiness
+                  </p>
+                </div>
+
+                <span className="text-2xl">
+                  {smartInsight.icon}
+                </span>
+              </div>
+
+              <div className="mt-5 flex items-end justify-between">
+                <span className="text-3xl font-extrabold text-[var(--text-heading)]">
+                  {careerReadiness}%
+                </span>
+
+                <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-[9px] font-extrabold text-[var(--primary)]">
+                  {readinessLabel}
+                </span>
+              </div>
+
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--border)]">
+                <div
+                  className="h-full rounded-full bg-[var(--primary)] transition-all duration-700"
+                  style={{ width: `${careerReadiness}%` }}
+                />
+              </div>
+
+              <p className="mt-3 text-[10px] leading-5 opacity-60">
+                Based on your current profile and skill information.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ===================================================
             STATS
-        ========================== */}
+        ==================================================== */}
         <section
           aria-label="Profile statistics"
-          className="mt-6 grid gap-4 sm:grid-cols-3"
+          className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
         >
           {[
             {
@@ -687,15 +885,22 @@ function Dashboard() {
               icon: "✨",
               label: "STATUS",
               title: "Profile",
-              value: profileCompletion === 100 ? "100%" : "In progress",
-              description: "Keep your profile complete",
+              value: `${profileCompletion}%`,
+              description: "Profile completion",
+            },
+            {
+              icon: "🤖",
+              label: "AI INSIGHT",
+              title: "Readiness",
+              value: `${careerReadiness}%`,
+              description: "Career readiness",
             },
             {
               icon: "🚀",
               label: "JOURNEY",
               title: "Learning",
               value: "Ready",
-              description: "Continue your skill journey",
+              description: "Continue your journey",
             },
           ].map((stat) => (
             <div
@@ -729,13 +934,16 @@ function Dashboard() {
           ))}
         </section>
 
-        {/* =========================
+        {/* ===================================================
             CONTINUE LEARNING
-        ========================== */}
+        ==================================================== */}
         <section className="mt-12">
+
           <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+
             <div>
               <div className="flex items-center gap-3">
+
                 <div className="h-9 w-1.5 rounded-full bg-[var(--primary)]" />
 
                 <div>
@@ -763,10 +971,13 @@ function Dashboard() {
 
             {/* Skills */}
             <article className="group relative overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition-all duration-300 hover:-translate-y-2 hover:border-[var(--primary)]/40 hover:shadow-2xl">
+
               <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-[var(--primary-soft)] opacity-0 blur-3xl transition duration-500 group-hover:opacity-100" />
 
               <div className="relative">
+
                 <div className="flex items-start justify-between">
+
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-2xl transition duration-300 group-hover:scale-110 group-hover:rotate-3">
                     🎯
                   </div>
@@ -798,10 +1009,13 @@ function Dashboard() {
 
             {/* Resources */}
             <article className="group relative overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition-all duration-300 hover:-translate-y-2 hover:border-[var(--primary)]/40 hover:shadow-2xl">
+
               <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-[var(--primary-soft)] opacity-0 blur-3xl transition duration-500 group-hover:opacity-100" />
 
               <div className="relative">
+
                 <div className="flex items-start justify-between">
+
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-2xl transition duration-300 group-hover:scale-110 group-hover:rotate-3">
                     📚
                   </div>
@@ -834,10 +1048,13 @@ function Dashboard() {
 
             {/* Career */}
             <article className="group relative overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition-all duration-300 hover:-translate-y-2 hover:border-[var(--primary)]/40 hover:shadow-2xl">
+
               <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-[var(--primary-soft)] opacity-0 blur-3xl transition duration-500 group-hover:opacity-100" />
 
               <div className="relative">
+
                 <div className="flex items-start justify-between">
+
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-2xl transition duration-300 group-hover:scale-110 group-hover:rotate-3">
                     🚀
                   </div>
@@ -869,15 +1086,114 @@ function Dashboard() {
           </div>
         </section>
 
-        {/* =========================
-            Skills Preview
-        ========================== */}
+        {/* ===================================================
+            AI QUICK ACTIONS
+        ==================================================== */}
+        <section className="mt-12">
+
+          <div className="mb-6">
+            <div className="flex items-center gap-3">
+
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-xl">
+                ✨
+              </div>
+
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--primary)]">
+                  Smart Actions
+                </p>
+
+                <h2 className="mt-1 text-2xl font-extrabold text-[var(--text-heading)]">
+                  What's your next move?
+                </h2>
+              </div>
+            </div>
+
+            <p className="mt-3 text-sm">
+              Choose an action and keep progressing through your SkillBridge journey.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+
+            <Link
+              to="/skills"
+              className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[var(--primary)]/40 hover:shadow-xl"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-2xl">🎯</span>
+
+                <span className="text-lg opacity-40 transition-transform group-hover:translate-x-1">
+                  →
+                </span>
+              </div>
+
+              <h3 className="mt-4 font-extrabold text-[var(--text-heading)]">
+                Improve Skills
+              </h3>
+
+              <p className="mt-1 text-xs leading-5 opacity-70">
+                Add or explore skills that support your goals.
+              </p>
+            </Link>
+
+            <Link
+              to="/resources"
+              className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[var(--primary)]/40 hover:shadow-xl"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-2xl">📚</span>
+
+                <span className="text-lg opacity-40 transition-transform group-hover:translate-x-1">
+                  →
+                </span>
+              </div>
+
+              <h3 className="mt-4 font-extrabold text-[var(--text-heading)]">
+                Learn Something New
+              </h3>
+
+              <p className="mt-1 text-xs leading-5 opacity-70">
+                Discover resources to strengthen your knowledge.
+              </p>
+            </Link>
+
+            <Link
+              to="/career"
+              className="group rounded-2xl border border-[var(--primary)]/20 bg-[var(--primary-soft)]/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[var(--primary)]/50 hover:shadow-xl"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-2xl">🤖</span>
+
+                <span className="text-lg opacity-40 transition-transform group-hover:translate-x-1">
+                  →
+                </span>
+              </div>
+
+              <h3 className="mt-4 font-extrabold text-[var(--text-heading)]">
+                Discover Your Path
+              </h3>
+
+              <p className="mt-1 text-xs leading-5 opacity-70">
+                Explore career directions based on your profile.
+              </p>
+            </Link>
+
+          </div>
+        </section>
+
+        {/* ===================================================
+            SKILLS PREVIEW
+        ==================================================== */}
         <section className="relative mt-12 overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm sm:p-8">
+
           <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-[var(--primary-soft)] opacity-30 blur-3xl" />
 
           <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+
             <div>
               <div className="flex items-center gap-3">
+
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-xl">
                   🎯
                 </div>
@@ -909,6 +1225,7 @@ function Dashboard() {
 
           {skills.length > 0 ? (
             <div className="relative mt-7 flex flex-wrap gap-3">
+
               {skills.slice(0, 8).map((skill) => (
                 <div
                   key={skill.id}
@@ -934,9 +1251,11 @@ function Dashboard() {
                   +{skills.length - 8} more
                 </Link>
               )}
+
             </div>
           ) : (
             <div className="relative mt-7 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg)] p-10 text-center">
+
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-2xl">
                 🎯
               </div>
@@ -956,22 +1275,26 @@ function Dashboard() {
               >
                 Add Your First Skill
               </Link>
+
             </div>
           )}
         </section>
 
-        {/* =========================
-            Profile Information
-        ========================== */}
+        {/* ===================================================
+            PROFILE INFORMATION
+        ==================================================== */}
         <section
           id="profile-information"
           className="mt-12 scroll-mt-28 overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] shadow-sm"
         >
+
           <div className="border-b border-[var(--border)] p-6 sm:p-8">
+
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
 
               <div>
                 <div className="flex items-center gap-3">
+
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--primary-soft)]">
                     👤
                   </div>
@@ -985,6 +1308,7 @@ function Dashboard() {
                       Profile Information
                     </h2>
                   </div>
+
                 </div>
 
                 <p className="mt-3 text-sm">
@@ -1002,17 +1326,20 @@ function Dashboard() {
                   <span>✎</span>
                 </button>
               )}
+
             </div>
           </div>
 
           {/* Edit Form */}
           {editMode ? (
             <div className="p-6 sm:p-8">
+
               <div className="space-y-6">
 
-                {/* Edit Mode Header */}
                 <div className="rounded-2xl border border-[var(--primary)]/20 bg-[var(--primary-soft)] p-5">
+
                   <div className="flex items-start gap-3">
+
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--primary)] text-white">
                       ✎
                     </div>
@@ -1027,16 +1354,19 @@ function Dashboard() {
                         finished.
                       </p>
                     </div>
+
                   </div>
                 </div>
 
                 {/* Profile Picture */}
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5">
+
                   <p className="mb-4 text-sm font-bold text-[var(--text-heading)]">
                     Profile Picture
                   </p>
 
                   <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
+
                     {avatarUrl ? (
                       <img
                         src={avatarUrl}
@@ -1050,6 +1380,7 @@ function Dashboard() {
                     )}
 
                     <div>
+
                       <label
                         htmlFor="profile_picture"
                         className="inline-flex cursor-pointer rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
@@ -1075,12 +1406,14 @@ function Dashboard() {
                           Selected: {selectedImage.name}
                         </p>
                       )}
+
                     </div>
                   </div>
                 </div>
 
                 {/* Names */}
                 <div className="grid gap-5 sm:grid-cols-2">
+
                   <div>
                     <label
                       htmlFor="first_name"
@@ -1120,6 +1453,7 @@ function Dashboard() {
                       className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:text-[var(--text)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary-soft)]"
                     />
                   </div>
+
                 </div>
 
                 {/* Email */}
@@ -1218,6 +1552,7 @@ function Dashboard() {
                       {saveMessage}
                     </p>
                   )}
+
                 </div>
               </div>
             </div>
@@ -1260,6 +1595,7 @@ function Dashboard() {
               ))}
 
               <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5 sm:col-span-2">
+
                 <p className="text-[10px] font-extrabold uppercase tracking-[0.14em]">
                   Bio
                 </p>
@@ -1267,6 +1603,7 @@ function Dashboard() {
                 <p className="mt-2 whitespace-pre-line text-sm leading-7 text-[var(--text-heading)]">
                   {user?.bio || "No bio added yet."}
                 </p>
+
               </div>
             </div>
           )}
@@ -1280,12 +1617,14 @@ function Dashboard() {
               ✓ {saveMessage}
             </p>
           )}
+
         </section>
 
-        {/* =========================
+        {/* ===================================================
             PREMIUM BOTTOM CTA
-        ========================== */}
+        ==================================================== */}
         <section className="relative mt-12 overflow-hidden rounded-[2.5rem] border border-[var(--border)] bg-[var(--surface)] shadow-xl">
+
           <div className="absolute inset-0 bg-[var(--primary-soft)] opacity-30" />
 
           <div className="absolute -right-20 -top-28 h-64 w-64 rounded-full bg-[var(--primary-soft)] blur-3xl" />
@@ -1295,47 +1634,48 @@ function Dashboard() {
           <div className="relative px-6 py-10 text-center sm:px-10 sm:py-12">
 
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--primary)] text-2xl text-white shadow-xl">
-              🚀
+              🤖
             </div>
 
             <p className="mt-5 text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--primary)]">
-              Keep Moving Forward
+              Your Career Journey
             </p>
 
             <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-[var(--text-heading)] sm:text-3xl">
-              Your next opportunity starts here.
+              Ready to discover what comes next?
             </h2>
 
-            <p className="mx-auto mt-3 max-w-2xl text-sm leading-7">
-              Build stronger skills, discover valuable resources and explore
-              career paths that move you closer to your goals.
+            <p className="text-center text-sm leading-7">
+              Explore career paths, strengthen your skills and prepare for
+              opportunities that match your potential.
             </p>
 
             <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
 
               <Link
-                to="/skills"
+                to="/career"
                 className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-6 py-3 text-sm font-bold !text-white shadow-lg transition-all duration-200 hover:-translate-y-1 hover:bg-[var(--primary-hover)] hover:shadow-xl"
               >
-                Build Your Skills
+                Explore Career
                 <span>→</span>
               </Link>
 
               <Link
-                to="/career"
+                to="/skills"
                 className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-6 py-3 text-sm font-bold text-[var(--text-heading)] shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[var(--primary)] hover:text-[var(--primary)] hover:shadow-md"
               >
-                Explore Careers
+                Build Your Skills
               </Link>
 
             </div>
           </div>
         </section>
 
-        {/* =========================
-            Mobile Navigation
-        ========================== */}
+        {/* ===================================================
+            MOBILE NAVIGATION
+        ==================================================== */}
         <section className="mt-10 md:hidden">
+
           <div className="rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
 
             <p className="mb-4 text-sm font-bold text-[var(--text-heading)]">
@@ -1371,12 +1711,14 @@ function Dashboard() {
             </div>
           </div>
         </section>
+
       </main>
 
-      {/* =========================
-          Footer
-      ========================== */}
+      {/* =====================================================
+          FOOTER
+      ====================================================== */}
       <footer className="mt-14 border-t border-[var(--border)] bg-[var(--surface)]">
+
         <div className="mx-auto max-w-7xl px-4 py-8 text-center text-xs sm:px-6 lg:px-8">
 
           <p className="font-bold text-[var(--text-heading)]">
@@ -1388,6 +1730,7 @@ function Dashboard() {
           </p>
 
         </div>
+
       </footer>
     </div>
   );

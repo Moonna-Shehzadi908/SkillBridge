@@ -35,3 +35,17 @@ class SkillSerializer(serializers.ModelSerializer):
 
     def validate_category(self, value):
         return value.strip()
+class SkillRecommendationSerializer(serializers.ModelSerializer):
+    match_score = serializers.IntegerField(read_only=True)
+    reason = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = Skill
+        fields = [
+            "id",
+            "name",
+            "description",
+            "category",
+            "match_score",
+            "reason",
+        ]

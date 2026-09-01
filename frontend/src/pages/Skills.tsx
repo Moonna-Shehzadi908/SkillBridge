@@ -15,16 +15,30 @@ interface Skill {
   updated_at?: string;
 }
 
+interface SkillRecommendation {
+  id: number;
+  name: string;
+  description: string;
+  category: string;
+  match_score: number;
+  reason: string;
+}
+
 function Skills() {
   const navigate = useNavigate();
 
   const [skills, setSkills] = useState<Skill[]>([]);
   const [mySkills, setMySkills] = useState<Skill[]>([]);
+  const [recommendations, setRecommendations] = useState<
+    SkillRecommendation[]
+  >([]);
 
   const [loading, setLoading] = useState(true);
   const [mySkillsLoading, setMySkillsLoading] = useState(true);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(true);
 
   const [error, setError] = useState("");
+  const [recommendationError, setRecommendationError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
   const [actionLoading, setActionLoading] = useState<number | null>(null);
 
@@ -129,6 +143,54 @@ function Skills() {
   };
 
   // =========================
+  // Fetch Smart Recommendations
+  // =========================
+  const fetchRecommendations = async () => {
+    const token = getToken();
+
+    if (!token) {
+      handleUnauthorized();
+      return;
+    }
+
+    try {
+      setRecommendationError("");
+
+      const response = await fetch(
+        `${API_URL}/api/skills/recommendations/`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (response.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error("Unable to load skill recommendations.");
+      }
+
+      const data: SkillRecommendation[] = await response.json();
+
+      setRecommendations(data);
+    } catch (err) {
+      setRecommendationError(
+        err instanceof Error
+          ? err.message
+          : "Unable to load skill recommendations.",
+      );
+    } finally {
+      setRecommendationsLoading(false);
+    }
+  };
+
+  // =========================
   // Initial Load
   // =========================
   useEffect(() => {
@@ -141,6 +203,7 @@ function Skills() {
 
     fetchSkills();
     fetchMySkills();
+    fetchRecommendations();
   }, [navigate]);
 
   // =========================
@@ -182,7 +245,10 @@ function Skills() {
 
       setActionMessage("Skill added successfully.");
 
-      await fetchMySkills();
+      await Promise.all([
+        fetchMySkills(),
+        fetchRecommendations(),
+      ]);
     } catch (err) {
       setActionMessage(
         err instanceof Error
@@ -235,7 +301,10 @@ function Skills() {
 
       setActionMessage("Skill removed successfully.");
 
-      await fetchMySkills();
+      await Promise.all([
+        fetchMySkills(),
+        fetchRecommendations(),
+      ]);
     } catch (err) {
       setActionMessage(
         err instanceof Error
@@ -317,7 +386,6 @@ function Skills() {
             Premium Hero
         ========================== */}
         <section className="relative mb-11 overflow-hidden rounded-[2rem] border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-indigo-50/70 shadow-xl shadow-slate-200/50 dark:border-[var(--border)] dark:from-[var(--surface)] dark:via-[var(--surface)] dark:to-[var(--bg)]">
-
           <div className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-indigo-400/20 blur-3xl" />
 
           <div className="pointer-events-none absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-[var(--primary)]/10 blur-3xl" />
@@ -439,6 +507,223 @@ function Skills() {
         )}
 
         {/* =========================
+            Smart Recommendations
+        ========================== */}
+        <section className="mb-14">
+          <div className="mb-7 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--primary)]">
+                Personalized for you
+              </p>
+
+              <h2 className="mt-1 text-2xl font-bold tracking-tight text-[var(--text-heading)] sm:text-3xl">
+                Smart Recommendations
+              </h2>
+
+              <p className="mt-1.5 max-w-2xl text-sm leading-6">
+                Discover skills that naturally build on what you already know.
+                Your recommendations update as your skill profile grows.
+              </p>
+            </div>
+
+            {recommendations.length > 0 && (
+              <div className="inline-flex w-fit rounded-full bg-[var(--primary-soft)] px-3.5 py-1.5 text-xs font-bold text-[var(--primary)]">
+                {recommendations.length}{" "}
+                {recommendations.length === 1
+                  ? "recommendation"
+                  : "recommendations"}
+              </div>
+            )}
+          </div>
+
+          {recommendationsLoading ? (
+            <div className="rounded-3xl border border-slate-200 bg-white p-10 shadow-lg shadow-slate-200/30 dark:border-[var(--border)] dark:bg-[var(--surface)]">
+              <div className="flex flex-col items-center justify-center text-center">
+                <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-slate-200 border-t-[var(--primary)] dark:border-[var(--border)]" />
+
+                <p className="mt-4 text-sm font-semibold text-[var(--text-heading)]">
+                  Finding your next skills...
+                </p>
+
+                <p className="mt-1 text-xs">
+                  Analyzing your current skill profile
+                </p>
+              </div>
+            </div>
+          ) : recommendationError ? (
+            <div
+              role="alert"
+              className="rounded-3xl border border-red-300 bg-red-50 px-6 py-8 text-center text-red-700 shadow-sm dark:border-red-800 dark:bg-red-950/30 dark:text-red-300"
+            >
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/10 text-xl">
+                !
+              </div>
+
+              <h3 className="mt-4 font-bold">
+                Recommendations unavailable
+              </h3>
+
+              <p className="mt-1 text-sm">
+                {recommendationError}
+              </p>
+            </div>
+          ) : recommendations.length === 0 ? (
+            <div className="relative overflow-hidden rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center shadow-lg shadow-slate-200/30 dark:border-[var(--border)] dark:bg-[var(--surface)]">
+              <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary-soft)] to-transparent opacity-40" />
+
+              <div className="relative">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-3xl shadow-sm">
+                  ✨
+                </div>
+
+                <h3 className="mt-5 text-xl font-bold text-[var(--text-heading)]">
+                  Build your profile to unlock recommendations
+                </h3>
+
+                <p className="text-center text-sm leading-6">
+                  Select at least one skill and SkillBridge will suggest
+                  related skills that can help you grow further.
+                </p>
+
+                <a
+                  href="#available-skills"
+                  className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-semibold !text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--primary-hover)] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                >
+                  Explore Skills
+                  <span aria-hidden="true">↓</span>
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {recommendations.map((recommendation, index) => (
+                <article
+                  key={recommendation.id}
+                  className="
+                    group relative flex h-full flex-col overflow-hidden rounded-3xl
+                    border border-indigo-100
+                    bg-gradient-to-br from-white via-indigo-50/35 to-violet-50/50
+                    p-6
+                    shadow-md shadow-indigo-100/40
+                    transition-all duration-300 ease-out
+                    hover:-translate-y-1
+                    hover:border-[var(--primary)]/40
+                    hover:shadow-2xl
+                    hover:shadow-indigo-200/40
+                    dark:border-[var(--border)]
+                    dark:from-[var(--surface)]
+                    dark:via-[var(--surface)]
+                    dark:to-[var(--bg)]
+                    dark:hover:border-[var(--primary)]/40
+                  "
+                >
+                  <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[var(--primary)] opacity-0 blur-3xl transition-all duration-500 group-hover:opacity-15" />
+
+                  <div className="relative flex h-full flex-col">
+                    {/* Top row */}
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-xl font-bold text-[var(--primary)] shadow-sm transition-all duration-300 group-hover:-translate-y-0.5 group-hover:scale-105">
+                        {index === 0
+                          ? "★"
+                          : index === 1
+                            ? "✦"
+                            : "↗"}
+                      </div>
+
+                      <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--primary)]">
+                        {recommendation.match_score}% Match
+                      </span>
+                    </div>
+
+                    {/* Title */}
+                    <h3 className="mt-6 text-xl font-bold leading-7 text-[var(--text-heading)] transition-colors duration-300 group-hover:text-[var(--primary)]">
+                      {recommendation.name}
+                    </h3>
+
+                    {/* Category */}
+                    {recommendation.category && (
+                      <div className="mt-3">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-xs font-bold text-[var(--primary)] transition-all duration-300 group-hover:bg-[var(--primary)] group-hover:text-white">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[var(--primary)] transition-colors duration-300 group-hover:bg-white" />
+                          {recommendation.category}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Reason */}
+                    <div className="mt-5 rounded-2xl border border-indigo-100 bg-white/70 p-4 dark:border-[var(--border)] dark:bg-[var(--surface)]/60">
+                      <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">
+                        Why this skill?
+                      </p>
+
+                      <p className="mt-1.5 text-sm leading-6">
+                        {recommendation.reason}
+                      </p>
+                    </div>
+
+                    {/* Description */}
+                    <p className="mt-4 min-h-[48px] flex-1 text-sm leading-6">
+                      {recommendation.description ||
+                        "A useful skill to add to your learning journey."}
+                    </p>
+
+                    {/* Bottom */}
+                    <div className="mt-7 border-t border-indigo-100 pt-5 dark:border-[var(--border)]">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleAddSkill(recommendation.id)
+                        }
+                        disabled={
+                          isSkillSelected(recommendation.id) ||
+                          actionLoading === recommendation.id
+                        }
+                        className={`
+                          inline-flex w-full items-center justify-center gap-2
+                          rounded-xl px-4 py-3
+                          text-sm font-bold
+                          transition-all duration-200
+                          focus:outline-none
+                          focus:ring-2
+                          focus:ring-[var(--primary)]
+                          focus:ring-offset-2
+                          ${
+                            isSkillSelected(recommendation.id)
+                              ? `
+                                cursor-not-allowed
+                                border border-slate-200
+                                bg-slate-50
+                                text-slate-500
+                                dark:border-[var(--border)]
+                                dark:bg-[var(--bg)]
+                                dark:text-[var(--text)]
+                              `
+                              : `
+                                bg-[var(--primary)]
+                                text-white
+                                shadow-md
+                                hover:-translate-y-0.5
+                                hover:bg-[var(--primary-hover)]
+                                hover:shadow-lg
+                              `
+                          }
+                        `}
+                      >
+                        {actionLoading === recommendation.id
+                          ? "Adding..."
+                          : isSkillSelected(recommendation.id)
+                            ? "Skill Added ✓"
+                            : "Add Recommended Skill →"}
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* =========================
             My Skills
         ========================== */}
         <section className="mb-14">
@@ -520,13 +805,11 @@ function Skills() {
                     dark:hover:to-[var(--surface)]
                   "
                 >
-                  {/* Soft hover glow */}
                   <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[var(--primary)] opacity-0 blur-3xl transition-all duration-500 group-hover:opacity-15" />
 
                   <div className="pointer-events-none absolute -bottom-16 -left-12 h-32 w-32 rounded-full bg-indigo-400 opacity-0 blur-3xl transition-all duration-500 group-hover:opacity-10" />
 
                   <div className="relative flex h-full flex-col">
-                    {/* Top row */}
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-xl font-bold text-[var(--primary)] shadow-sm transition-all duration-300 group-hover:-translate-y-0.5 group-hover:scale-105 group-hover:shadow-md">
                         ✓
@@ -537,12 +820,10 @@ function Skills() {
                       </span>
                     </div>
 
-                    {/* Title */}
                     <h3 className="mt-6 text-xl font-bold leading-7 text-[var(--text-heading)] transition-colors duration-300 group-hover:text-[var(--primary)]">
                       {skill.name}
                     </h3>
 
-                    {/* Category */}
                     {skill.category && (
                       <div className="mt-3">
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-xs font-bold text-[var(--primary)] transition-all duration-300 group-hover:bg-[var(--primary)] group-hover:text-white">
@@ -552,14 +833,12 @@ function Skills() {
                       </div>
                     )}
 
-                    {/* Description */}
                     {skill.description && (
                       <p className="mt-5 min-h-[72px] flex-1 text-sm leading-6">
                         {skill.description}
                       </p>
                     )}
 
-                    {/* Bottom */}
                     <div className="mt-7 border-t border-slate-200/80 pt-5 dark:border-[var(--border)]">
                       <button
                         type="button"
@@ -690,13 +969,11 @@ function Skills() {
                       }
                     `}
                   >
-                    {/* Soft decorative glow */}
                     <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[var(--primary)] opacity-0 blur-3xl transition-all duration-500 group-hover:opacity-15" />
 
                     <div className="pointer-events-none absolute -bottom-16 -left-12 h-32 w-32 rounded-full bg-indigo-400 opacity-0 blur-3xl transition-all duration-500 group-hover:opacity-10" />
 
                     <div className="relative flex h-full flex-col">
-                      {/* Top row */}
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-xl shadow-sm transition-all duration-300 group-hover:-translate-y-0.5 group-hover:scale-105 group-hover:shadow-md">
                           🎯
@@ -713,12 +990,10 @@ function Skills() {
                         )}
                       </div>
 
-                      {/* Title */}
                       <h3 className="mt-6 text-xl font-bold leading-7 text-[var(--text-heading)] transition-colors duration-300 group-hover:text-[var(--primary)]">
                         {skill.name}
                       </h3>
 
-                      {/* Category */}
                       {skill.category && (
                         <div className="mt-3">
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-xs font-bold text-[var(--primary)] transition-all duration-300 group-hover:bg-[var(--primary)] group-hover:text-white">
@@ -728,12 +1003,10 @@ function Skills() {
                         </div>
                       )}
 
-                      {/* Description */}
                       <p className="mt-5 min-h-[72px] flex-1 text-sm leading-6">
                         {skill.description || "No description available."}
                       </p>
 
-                      {/* Bottom */}
                       <div className="mt-7 border-t border-slate-200/80 pt-5 dark:border-[var(--border)]">
                         <button
                           type="button"
