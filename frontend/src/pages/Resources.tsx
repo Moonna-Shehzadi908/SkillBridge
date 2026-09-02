@@ -1055,7 +1055,7 @@ function Resources() {
                 Keep building your future
               </h2>
 
-              <p className="mx-auto mt-2 max-w-2xl text-center text-sm leading-6 dark:text-[var(--text)]">
+              <p className=" text-center text-sm leading-6 dark:text-[var(--text)]">
                 Every resource you explore is another step toward
                 stronger skills, better opportunities, and your
                 career goals.
