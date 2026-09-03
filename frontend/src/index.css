@@ -493,3 +493,9 @@ header {
     padding: 1.25rem;
   }
 }
+.cta-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}

@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -79,6 +80,14 @@ const getMatchLabel = (score: number) => {
   return "No Match";
 };
 
+/* FIX: Added missing score class helper */
+const getScoreClass = (score: number) => {
+  if (score >= 80) return "score-excellent";
+  if (score >= 60) return "score-strong";
+  if (score >= 40) return "score-good";
+  return "score-potential";
+};
+
 const getDemandLabel = (level: Career["demand_level"]) => {
   switch (level) {
     case "HIGH":
@@ -87,6 +96,20 @@ const getDemandLabel = (level: Career["demand_level"]) => {
       return "Medium Demand";
     default:
       return "Growing Field";
+  }
+};
+
+/* FIX: Added missing demand ranking helper */
+const getDemandRank = (level: Career["demand_level"]) => {
+  switch (level) {
+    case "HIGH":
+      return 3;
+    case "MEDIUM":
+      return 2;
+    case "LOW":
+      return 1;
+    default:
+      return 0;
   }
 };
 
@@ -116,9 +139,7 @@ const getDemandClass = (level: Career["demand_level"]) => {
   return "demand-low";
 };
 
-const getResourceTypeLabel = (
-  resource: Resource
-) => {
+const getResourceTypeLabel = (resource: Resource) => {
   if (resource.resource_type_display) {
     return resource.resource_type_display;
   }
@@ -157,6 +178,13 @@ export default function Career() {
   const [aiResults, setAiResults] = useState<Career[]>([]);
   const [mySkills, setMySkills] = useState<UserSkill[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
+
+  // Local discovery controls — no backend changes required.
+  const [careerSearch, setCareerSearch] = useState("");
+  const [demandFilter, setDemandFilter] =
+    useState<"ALL" | Career["demand_level"]>("ALL");
+  const [careerSort, setCareerSort] =
+    useState<"title" | "demand">("title");
 
   const [loading, setLoading] = useState(true);
   const [mySkillsLoading, setMySkillsLoading] = useState(false);
@@ -459,6 +487,37 @@ export default function Career() {
   };
 
   const topAIMatches = aiResults.slice(0, 3);
+
+  const filteredCareers = useMemo(() => {
+    const query = careerSearch.trim().toLowerCase();
+
+    return [...careers]
+      .filter((career) => {
+        const matchesSearch =
+          !query ||
+          career.title.toLowerCase().includes(query) ||
+          career.description.toLowerCase().includes(query) ||
+          career.required_skills.some((skill) =>
+            skill.toLowerCase().includes(query)
+          );
+
+        const matchesDemand =
+          demandFilter === "ALL" ||
+          career.demand_level === demandFilter;
+
+        return matchesSearch && matchesDemand;
+      })
+      .sort((a, b) => {
+        if (careerSort === "demand") {
+          return (
+            getDemandRank(b.demand_level) -
+            getDemandRank(a.demand_level)
+          );
+        }
+
+        return a.title.localeCompare(b.title);
+      });
+  }, [careers, careerSearch, demandFilter, careerSort]);
 
   const averageMatch = useMemo(() => {
     if (!aiResults.length) return 0;
@@ -925,6 +984,244 @@ export default function Career() {
           transform: translateY(-4px);
           border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
           box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+        }
+
+        .featured-career::before {
+          content: "";
+          position: absolute;
+          inset: 0 0 auto 0;
+          height: 3px;
+          background: linear-gradient(90deg, var(--primary), #8b5cf6, #06b6d4);
+        }
+
+        .career-rank {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 12px;
+          padding: 5px 8px;
+          border-radius: 8px;
+          background: var(--primary-soft);
+          color: var(--primary);
+          font-size: 0.67rem;
+          font-weight: 850;
+        }
+
+        .career-rank span {
+          font-weight: 950;
+        }
+
+        .score-excellent .score-pill {
+          background: rgba(16, 185, 129, 0.12);
+          color: #059669;
+        }
+
+        .score-strong .score-pill {
+          background: rgba(99, 102, 241, 0.12);
+          color: var(--primary);
+        }
+
+        .score-good .score-pill {
+          background: rgba(245, 158, 11, 0.12);
+          color: #b45309;
+        }
+
+        .score-potential .score-pill {
+          background: rgba(148, 163, 184, 0.16);
+        }
+
+        .insight-strip {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-top: 14px;
+          padding: 13px 15px;
+          border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border));
+          border-radius: 15px;
+          background: color-mix(in srgb, var(--primary-soft) 42%, var(--surface));
+        }
+
+        .insight-icon {
+          width: 35px;
+          height: 35px;
+          flex: 0 0 auto;
+          display: grid;
+          place-items: center;
+          border-radius: 10px;
+          background: var(--primary-soft);
+          color: var(--primary);
+        }
+
+        .insight-copy {
+          min-width: 0;
+          flex: 1;
+        }
+
+        .insight-copy strong,
+        .insight-copy span {
+          display: block;
+        }
+
+        .insight-copy strong {
+          color: var(--text-heading);
+          font-size: 0.78rem;
+        }
+
+        .insight-copy span {
+          margin-top: 3px;
+          font-size: 0.7rem;
+          line-height: 1.5;
+          opacity: 0.66;
+        }
+
+        .insight-action {
+          flex: 0 0 auto;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          color: var(--primary);
+          text-decoration: none;
+          font-size: 0.72rem;
+          font-weight: 850;
+        }
+
+        .insight-action:hover {
+          text-decoration: underline;
+        }
+
+        .next-step-box {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          margin-top: 15px;
+          padding: 10px 11px;
+          border-radius: 12px;
+          background: color-mix(in srgb, var(--primary-soft) 48%, var(--surface));
+          border: 1px solid var(--border);
+        }
+
+        .next-step-icon {
+          width: 29px;
+          height: 29px;
+          flex: 0 0 auto;
+          display: grid;
+          place-items: center;
+          border-radius: 8px;
+          background: var(--primary-soft);
+          color: var(--primary);
+        }
+
+        .next-step-box strong,
+        .next-step-box span {
+          display: block;
+        }
+
+        .next-step-box strong {
+          color: var(--text-heading);
+          font-size: 0.72rem;
+        }
+
+        .next-step-box span {
+          margin-top: 2px;
+          font-size: 0.68rem;
+          opacity: 0.66;
+        }
+
+        .section-kicker {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 8px;
+          color: var(--primary);
+          font-size: 0.72rem;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+
+        .career-discovery-heading {
+          align-items: center;
+        }
+
+        .career-controls {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+        }
+
+        .career-search,
+        .career-select {
+          min-height: 42px;
+          border: 1px solid var(--border);
+          background: var(--surface);
+          color: var(--text);
+          border-radius: 11px;
+        }
+
+        .career-search {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 0 11px;
+          min-width: 245px;
+          color: var(--primary);
+        }
+
+        .career-search input {
+          width: 100%;
+          border: 0;
+          outline: 0;
+          background: transparent;
+          color: var(--text-heading);
+          font: inherit;
+          font-size: 0.78rem;
+        }
+
+        .career-search input::placeholder {
+          color: var(--text);
+          opacity: 0.5;
+        }
+
+        .career-select {
+          padding: 0 10px;
+          font-size: 0.75rem;
+          font-weight: 750;
+          outline: 0;
+          cursor: pointer;
+        }
+
+        .career-search:focus-within,
+        .career-select:focus {
+          border-color: var(--primary);
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent);
+        }
+
+        .results-count {
+          margin: -5px 0 13px;
+          font-size: 0.74rem;
+          opacity: 0.6;
+        }
+
+        .results-count strong {
+          color: var(--text-heading);
+          opacity: 1;
+        }
+
+        .filtered-empty {
+          margin-top: 4px;
+        }
+
+        .empty-filter-icon {
+          width: 48px;
+          height: 48px;
+          display: grid;
+          place-items: center;
+          margin: 0 auto;
+          border-radius: 14px;
+          background: var(--primary-soft);
+          color: var(--primary);
         }
 
         .career-card-header {
@@ -1692,6 +1989,33 @@ export default function Career() {
             align-items: flex-start;
           }
 
+          .career-discovery-heading {
+            gap: 16px;
+          }
+
+          .career-controls {
+            width: 100%;
+            justify-content: flex-start;
+          }
+
+          .career-search {
+            flex: 1 1 100%;
+            min-width: 0;
+          }
+
+          .career-select {
+            flex: 1 1 0;
+          }
+
+          .insight-strip {
+            align-items: flex-start;
+            flex-wrap: wrap;
+          }
+
+          .insight-action {
+            margin-left: 47px;
+          }
+
           .hero-visual {
             min-height: auto;
           }
@@ -1716,6 +2040,24 @@ export default function Career() {
 
           .browse-resources {
             margin-left: 28px;
+          }
+
+          .career-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+          }
+
+          .career-search {
+            grid-column: 1 / -1;
+          }
+
+          .career-select {
+            width: 100%;
+          }
+
+          .insight-action {
+            width: 100%;
+            margin-left: 47px;
           }
         }
       `}</style>
@@ -2005,35 +2347,72 @@ export default function Career() {
                 )}
               </div>
 
+              {/* FIX: Wrapped sibling JSX elements in Fragment */}
               {aiHasRun && !aiError && (
-                <div className="ai-summary">
-                  <div className="summary-box">
-                    <strong>
-                      {aiResults.length}
-                    </strong>
-                    <span>
-                      Career matches found
-                    </span>
+                <>
+                  <div className="ai-summary">
+                    <div className="summary-box">
+                      <strong>
+                        {aiResults.length}
+                      </strong>
+                      <span>
+                        Career matches found
+                      </span>
+                    </div>
+
+                    <div className="summary-box">
+                      <strong>
+                        {mySkills.length}
+                      </strong>
+                      <span>
+                        Your saved skills analyzed
+                      </span>
+                    </div>
+
+                    <div className="summary-box">
+                      <strong>
+                        {averageMatch}%
+                      </strong>
+                      <span>
+                        Average match across results
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="summary-box">
-                    <strong>
-                      {mySkills.length}
-                    </strong>
-                    <span>
-                      Your saved skills analyzed
-                    </span>
-                  </div>
+                  <div className="insight-strip">
+                    <div className="insight-icon">
+                      <Target size={17} />
+                    </div>
 
-                  <div className="summary-box">
-                    <strong>
-                      {averageMatch}%
-                    </strong>
-                    <span>
-                      Average match across results
-                    </span>
+                    <div className="insight-copy">
+                      <strong>
+                        {aiResults[0]
+                          ? `Best direction: ${aiResults[0].title}`
+                          : "Build your profile to unlock better matches"}
+                      </strong>
+
+                      <span>
+                        {aiResults[0]
+                          ? `${getSkillGap(aiResults[0]).missingSkills.length} skill${
+                              getSkillGap(aiResults[0]).missingSkills.length === 1
+                                ? ""
+                                : "s"
+                            } to strengthen for your strongest current match.`
+                          : "Add relevant skills and run Career Match again."}
+                      </span>
+                    </div>
+
+                    {aiResults[0] && (
+                      <Link
+                        to="/skills"
+                        className="insight-action"
+                      >
+                        Improve Profile
+                        <ArrowRight size={14} />
+                      </Link>
+                    )}
                   </div>
-                </div>
+                </>
               )}
             </div>
 
@@ -2083,9 +2462,24 @@ export default function Career() {
 
                       return (
                         <article
-                          className="career-card"
+                          className={`career-card featured-career ${
+                            getScoreClass(score)
+                          }`}
                           key={career.id}
                         >
+                          <div className="career-rank">
+                            <span>
+                              #{topAIMatches.indexOf(career) + 1}
+                            </span>
+
+                            {topAIMatches.indexOf(career) === 0 && (
+                              <>
+                                <Sparkles size={12} />
+                                Top match
+                              </>
+                            )}
+                          </div>
+
                           <div className="career-card-header">
                             <div>
                               <h3>
@@ -2201,6 +2595,30 @@ export default function Career() {
                             )}
                           </div>
 
+                          {gap.missingSkills.length > 0 && (
+                            <div className="next-step-box">
+                              <div className="next-step-icon">
+                                <Zap size={14} />
+                              </div>
+
+                              <div>
+                                <strong>
+                                  Best next step
+                                </strong>
+
+                                <span>
+                                  Strengthen{" "}
+                                  {gap.missingSkills[0]}
+                                  {gap.missingSkills.length > 1
+                                    ? ` + ${
+                                        gap.missingSkills.length - 1
+                                      } more`
+                                    : ""}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
                           <div className="card-meta">
                             <span className="meta-pill">
                               {formatSalary(
@@ -2220,7 +2638,7 @@ export default function Career() {
                           </div>
 
                           <div className="card-footer">
-                            <Link
+                            <Link 
                               to="/skills"
                               className="gap-action"
                             >
@@ -2583,17 +3001,95 @@ export default function Career() {
         {/* Career Paths */}
         <section className="section">
           <div className="career-container">
-            <div className="section-heading">
+            <div className="section-heading career-discovery-heading">
               <div>
+                <div className="section-kicker">
+                  <Route size={14} />
+                  Career Discovery
+                </div>
+
                 <h2>
                   Explore Career Paths
                 </h2>
 
                 <p>
-                  Browse the career opportunities available
-                  in your SkillBridge ecosystem.
+                  Search the SkillBridge career library, compare demand,
+                  and find paths worth building toward.
                 </p>
               </div>
+
+              {!loading && !error && careers.length > 0 && (
+                <div
+                  className="career-controls"
+                  aria-label="Career filters"
+                >
+                  <label className="career-search">
+                    <Target size={16} />
+
+                    <input
+                      type="search"
+                      value={careerSearch}
+                      onChange={(event) =>
+                        setCareerSearch(
+                          event.target.value
+                        )
+                      }
+                      placeholder="Search careers or skills..."
+                      aria-label="Search careers or skills"
+                    />
+                  </label>
+
+                  <select
+                    value={demandFilter}
+                    onChange={(event) =>
+                      setDemandFilter(
+                        event.target.value as
+                          | "ALL"
+                          | Career["demand_level"]
+                      )
+                    }
+                    aria-label="Filter careers by demand"
+                    className="career-select"
+                  >
+                    <option value="ALL">
+                      All demand
+                    </option>
+
+                    <option value="HIGH">
+                      High demand
+                    </option>
+
+                    <option value="MEDIUM">
+                      Medium demand
+                    </option>
+
+                    <option value="LOW">
+                      Growing fields
+                    </option>
+                  </select>
+
+                  <select
+                    value={careerSort}
+                    onChange={(event) =>
+                      setCareerSort(
+                        event.target.value as
+                          | "title"
+                          | "demand"
+                      )
+                    }
+                    aria-label="Sort career paths"
+                    className="career-select"
+                  >
+                    <option value="title">
+                      A–Z
+                    </option>
+
+                    <option value="demand">
+                      Demand first
+                    </option>
+                  </select>
+                </div>
+              )}
             </div>
 
             {loading ? (
@@ -2640,113 +3136,155 @@ export default function Career() {
                   are added to SkillBridge.
                 </p>
               </div>
-            ) : (
-              <div className="results-grid">
-                {careers.map((career) => (
-                  <article
-                    className="career-card"
-                    key={career.id}
-                  >
-                    <div className="career-card-header">
-                      <div>
-                        <h3>
-                          {career.title}
-                        </h3>
+            ) : filteredCareers.length === 0 ? (
+              <div className="empty-state filtered-empty">
+                <div className="empty-filter-icon">
+                  <Target size={24} />
+                </div>
 
-                        <div
-                          className={`match-label ${getDemandClass(
-                            career.demand_level
-                          )}`}
-                        >
-                          {getDemandLabel(
-                            career.demand_level
+                <h3>
+                  No career paths match your search
+                </h3>
+
+                <p>
+                  Try another keyword or clear the current filters to see
+                  more opportunities.
+                </p>
+
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => {
+                    setCareerSearch("");
+                    setDemandFilter("ALL");
+                  }}
+                >
+                  Clear Filters
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div className="results-count">
+                  Showing{" "}
+                  <strong>
+                    {filteredCareers.length}
+                  </strong>{" "}
+                  of{" "}
+                  <strong>
+                    {careers.length}
+                  </strong>{" "}
+                  career paths
+                </div>
+
+                <div className="results-grid">
+                  {filteredCareers.map(
+                    (career) => (
+                      <article
+                        className="career-card"
+                        key={career.id}
+                      >
+                        <div className="career-card-header">
+                          <div>
+                            <h3>
+                              {career.title}
+                            </h3>
+
+                            <div
+                              className={`match-label ${getDemandClass(
+                                career.demand_level
+                              )}`}
+                            >
+                              {getDemandLabel(
+                                career.demand_level
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <p className="career-description">
+                          {career.description}
+                        </p>
+
+                        <div className="skills-group">
+                          <div className="skills-group-title">
+                            <Target size={14} />
+                            Required Skills
+                          </div>
+
+                          <div className="skill-chips">
+                            {career.required_skills
+                              .slice(0, 6)
+                              .map((skill) => (
+                                <span
+                                  className="skill-chip"
+                                  style={{
+                                    background:
+                                      "var(--primary-soft)",
+                                    color:
+                                      "var(--text)",
+                                  }}
+                                  key={skill}
+                                >
+                                  {skill}
+                                </span>
+                              ))}
+                          </div>
+                        </div>
+
+                        <div className="card-meta">
+                          <span className="meta-pill">
+                            {formatSalary(
+                              career.average_salary
+                            )}
+                          </span>
+
+                          <span
+                            className={`meta-pill ${getDemandClass(
+                              career.demand_level
+                            )}`}
+                          >
+                            {getDemandLabel(
+                              career.demand_level
+                            )}
+                          </span>
+                        </div>
+
+                        <div className="card-footer">
+                          <span
+                            style={{
+                              fontSize: "0.76rem",
+                              opacity: 0.58,
+                            }}
+                          >
+                            Build relevant skills
+                          </span>
+
+                          {career.career_url ? (
+                            <a
+                              href={
+                                career.career_url
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="card-link"
+                            >
+                              Explore Career
+                              <ArrowRight size={14} />
+                            </a>
+                          ) : (
+                            <Link
+                              to="/skills"
+                              className="card-link"
+                            >
+                              View Skills
+                              <ArrowRight size={14} />
+                            </Link>
                           )}
                         </div>
-                      </div>
-                    </div>
-
-                    <p className="career-description">
-                      {career.description}
-                    </p>
-
-                    <div className="skills-group">
-                      <div className="skills-group-title">
-                        <Target size={14} />
-                        Required Skills
-                      </div>
-
-                      <div className="skill-chips">
-                        {career.required_skills
-                          .slice(0, 6)
-                          .map((skill) => (
-                            <span
-                              className="skill-chip"
-                              style={{
-                                background:
-                                  "var(--primary-soft)",
-                                color:
-                                  "var(--text)",
-                              }}
-                              key={skill}
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                      </div>
-                    </div>
-
-                    <div className="card-meta">
-                      <span className="meta-pill">
-                        {formatSalary(
-                          career.average_salary
-                        )}
-                      </span>
-
-                      <span
-                        className={`meta-pill ${getDemandClass(
-                          career.demand_level
-                        )}`}
-                      >
-                        {getDemandLabel(
-                          career.demand_level
-                        )}
-                      </span>
-                    </div>
-
-                    <div className="card-footer">
-                      <span
-                        style={{
-                          fontSize: "0.76rem",
-                          opacity: 0.58,
-                        }}
-                      >
-                        Build relevant skills
-                      </span>
-
-                      {career.career_url ? (
-                        <a
-                          href={
-                            career.career_url
-                          }
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="card-link"
-                        >
-                          Explore Career
-                          <ArrowRight size={14} />
-                        </a>
-                      ) : (
-                        <Link
-                          to="/skills"
-                          className="card-link"
-                        >
-                          View Skills
-                          <ArrowRight size={14} />
-                        </Link>
-                      )}
-                    </div>
-                  </article>
-                ))}
+                      </article>
+                    )
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -2766,19 +3304,21 @@ export default function Career() {
               </p>
             </div>
 
-            <Link
-              to="/skills"
-              className="cta-button"
-            >
-              Improve My Skills
-              <ArrowRight
-                size={15}
-                style={{
-                  verticalAlign: "middle",
-                  marginLeft: 5,
-                }}
-              />
-            </Link>
+           <Link
+  to="/skill-gap"
+  state={{ career: roadmapCareer }}
+  className="cta-button"
+>
+  <span>Improve My Skills</span>
+
+  <ArrowRight
+    size={15}
+    style={{
+      marginLeft: 5,
+      flexShrink: 0,
+    }}
+  />
+</Link>
           </div>
         </section>
       </main>
