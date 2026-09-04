@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ThemeToggle from "../components/ThemeToggle";
@@ -22,6 +22,38 @@ interface User {
   bio: string | null;
   location: string | null;
   skills?: Skill[];
+}
+
+/*
+ * Career API is intentionally flexible here.
+ * This prevents Dashboard from breaking if your backend
+ * returns slightly different field names.
+ */
+interface CareerRecommendation {
+  id?: number;
+  title?: string;
+  name?: string;
+  career?: string;
+  career_name?: string;
+  match_percentage?: number;
+  match_score?: number;
+  score?: number;
+  percentage?: number;
+  required_skills?: Skill[] | string[];
+  missing_skills?: Skill[] | string[];
+  skills?: Skill[] | string[];
+  demand_level?: string;
+  demand?: string;
+  average_salary?: number | string;
+  salary?: number | string;
+  career_url?: string;
+  url?: string;
+}
+
+interface CareerApiState {
+  loading: boolean;
+  error: string;
+  recommendations: CareerRecommendation[];
 }
 
 function Dashboard() {
@@ -48,9 +80,23 @@ function Dashboard() {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
 
-  /* =========================================================
-     FETCH USER
-  ========================================================= */
+  /*
+   * =========================================================
+   * DYNAMIC CAREER INTELLIGENCE
+   * =========================================================
+   */
+
+  const [careerData, setCareerData] = useState<CareerApiState>({
+    loading: true,
+    error: "",
+    recommendations: [],
+  });
+
+  /*
+   * =========================================================
+   * FETCH USER
+   * =========================================================
+   */
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -105,9 +151,112 @@ function Dashboard() {
     fetchUser();
   }, [navigate]);
 
-  /* =========================================================
-     LOGOUT
-  ========================================================= */
+  /*
+   * =========================================================
+   * FETCH REAL CAREER RECOMMENDATIONS
+   * =========================================================
+   */
+
+  useEffect(() => {
+    const fetchCareerRecommendations = async () => {
+      const token = localStorage.getItem("access_token");
+
+      if (!token) {
+        setCareerData({
+          loading: false,
+          error: "Authentication required.",
+          recommendations: [],
+        });
+        return;
+      }
+
+      try {
+        setCareerData((current) => ({
+          ...current,
+          loading: true,
+          error: "",
+        }));
+
+        const response = await fetch(
+          `${API_URL}/api/career/recommendations/`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        if (response.status === 401) {
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+          navigate("/login");
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error("Career recommendations are currently unavailable.");
+        }
+
+        const data = await response.json();
+
+        /*
+         * Supports common DRF response formats:
+         *
+         * [
+         *   {...}
+         * ]
+         *
+         * {
+         *   recommendations: [...]
+         * }
+         *
+         * {
+         *   results: [...]
+         * }
+         */
+        let recommendations: CareerRecommendation[] = [];
+
+        if (Array.isArray(data)) {
+          recommendations = data;
+        } else if (Array.isArray(data?.recommendations)) {
+          recommendations = data.recommendations;
+        } else if (Array.isArray(data?.results)) {
+          recommendations = data.results;
+        } else if (Array.isArray(data?.data)) {
+          recommendations = data.data;
+        }
+
+        setCareerData({
+          loading: false,
+          error: "",
+          recommendations,
+        });
+      } catch (err) {
+        /*
+         * Dashboard must remain functional even if Career API
+         * is unavailable.
+         */
+        setCareerData({
+          loading: false,
+          error:
+            err instanceof Error
+              ? err.message
+              : "Career recommendations unavailable.",
+          recommendations: [],
+        });
+      }
+    };
+
+    fetchCareerRecommendations();
+  }, [navigate, user?.id]);
+
+  /*
+   * =========================================================
+   * LOGOUT
+   * =========================================================
+   */
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
@@ -120,9 +269,11 @@ function Dashboard() {
     }, 1000);
   };
 
-  /* =========================================================
-     EDIT INPUT
-  ========================================================= */
+  /*
+   * =========================================================
+   * EDIT INPUT
+   * =========================================================
+   */
 
   const handleEditChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -135,9 +286,11 @@ function Dashboard() {
     }));
   };
 
-  /* =========================================================
-     IMAGE
-  ========================================================= */
+  /*
+   * =========================================================
+   * IMAGE
+   * =========================================================
+   */
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -164,9 +317,11 @@ function Dashboard() {
     setImagePreview(URL.createObjectURL(file));
   };
 
-  /* =========================================================
-     EDIT PROFILE
-  ========================================================= */
+  /*
+   * =========================================================
+   * EDIT PROFILE
+   * =========================================================
+   */
 
   const handleEditProfile = () => {
     if (!user) return;
@@ -193,9 +348,11 @@ function Dashboard() {
     }, 100);
   };
 
-  /* =========================================================
-     CANCEL
-  ========================================================= */
+  /*
+   * =========================================================
+   * CANCEL
+   * =========================================================
+   */
 
   const handleCancelEdit = () => {
     if (!user) return;
@@ -218,9 +375,11 @@ function Dashboard() {
     setEditMode(false);
   };
 
-  /* =========================================================
-     SAVE PROFILE
-  ========================================================= */
+  /*
+   * =========================================================
+   * SAVE PROFILE
+   * =========================================================
+   */
 
   const handleSaveProfile = async () => {
     const token = localStorage.getItem("access_token");
@@ -319,9 +478,11 @@ function Dashboard() {
     }
   };
 
-  /* =========================================================
-     DISPLAY VALUES
-  ========================================================= */
+  /*
+   * =========================================================
+   * DISPLAY VALUES
+   * =========================================================
+   */
 
   const fullName = useMemo(() => {
     if (!user) return "User";
@@ -348,9 +509,11 @@ function Dashboard() {
 
   const skills = user?.skills || [];
 
-  /* =========================================================
-     PROFILE COMPLETION
-  ========================================================= */
+  /*
+   * =========================================================
+   * PROFILE COMPLETION
+   * =========================================================
+   */
 
   const profileCompletion =
     (user?.first_name ? 20 : 0) +
@@ -360,22 +523,107 @@ function Dashboard() {
     (user?.location ? 15 : 0) +
     (user?.profile_picture ? 15 : 0);
 
-  /* =========================================================
-     CAREER READINESS
-  ========================================================= */
+  /*
+   * =========================================================
+   * REAL CAREER DATA HELPERS
+   * =========================================================
+   */
+
+  const topCareer = useMemo(() => {
+    return careerData.recommendations[0] || null;
+  }, [careerData.recommendations]);
+
+  const getCareerName = (career: CareerRecommendation) => {
+    return (
+      career.title ||
+      career.name ||
+      career.career ||
+      career.career_name ||
+      "Career Path"
+    );
+  };
+
+  const getCareerScore = (career: CareerRecommendation) => {
+    const raw =
+      career.match_percentage ??
+      career.match_score ??
+      career.score ??
+      career.percentage ??
+      0;
+
+    const numeric = Number(raw);
+
+    if (Number.isNaN(numeric)) return 0;
+
+    return Math.max(0, Math.min(Math.round(numeric), 100));
+  };
+
+  const getCareerDemand = (career: CareerRecommendation) => {
+    return career.demand_level || career.demand || "Not available";
+  };
+
+  const getCareerSalary = (career: CareerRecommendation) => {
+    return career.average_salary || career.salary || null;
+  };
+
+  /*
+   * =========================================================
+   * DYNAMIC CAREER READINESS
+   * =========================================================
+   *
+   * The dashboard score now combines:
+   *
+   * 1. Profile health
+   * 2. Current skills
+   * 3. Bio / professional context
+   * 4. Real career recommendation score
+   *
+   * If Career API is unavailable, the profile-based
+   * calculation safely remains active.
+   */
 
   const careerReadiness = useMemo(() => {
     let score = profileCompletion;
 
+    /*
+     * Skill foundation
+     */
+    if (skills.length >= 1) score += 3;
     if (skills.length >= 3) score += 5;
     if (skills.length >= 5) score += 5;
 
+    /*
+     * Professional context
+     */
     if (user?.bio && user.bio.length >= 80) {
       score += 5;
     }
 
+    /*
+     * Real career alignment
+     *
+     * We only use this when backend actually returns
+     * a valid recommendation score.
+     */
+    if (topCareer) {
+      const match = getCareerScore(topCareer);
+
+      if (match >= 80) {
+        score += 7;
+      } else if (match >= 60) {
+        score += 5;
+      } else if (match >= 40) {
+        score += 3;
+      }
+    }
+
     return Math.min(score, 100);
-  }, [profileCompletion, skills.length, user?.bio]);
+  }, [
+    profileCompletion,
+    skills.length,
+    user?.bio,
+    topCareer,
+  ]);
 
   const readinessLabel =
     careerReadiness >= 90
@@ -386,9 +634,81 @@ function Dashboard() {
           ? "Growing"
           : "Getting Started";
 
-  /* =========================================================
-     SMART INSIGHT
-  ========================================================= */
+  /*
+   * =========================================================
+   * DYNAMIC READINESS BREAKDOWN
+   * =========================================================
+   */
+
+  const skillFoundationScore = useMemo(() => {
+    if (skills.length === 0) return 0;
+
+    return Math.min(
+      100,
+      20 + skills.length * 13,
+    );
+  }, [skills.length]);
+
+  const learningMomentumScore = useMemo(() => {
+    let score = 20;
+
+    if (skills.length >= 1) score += 15;
+    if (skills.length >= 3) score += 20;
+    if (skills.length >= 5) score += 20;
+
+    if (user?.bio && user.bio.length >= 80) {
+      score += 15;
+    }
+
+    return Math.min(score, 100);
+  }, [skills.length, user?.bio]);
+
+  const careerAlignmentScore = topCareer
+    ? getCareerScore(topCareer)
+    : 0;
+
+  /*
+   * =========================================================
+   * DYNAMIC MISSING SKILLS
+   * =========================================================
+   */
+
+  const missingSkills = useMemo(() => {
+    if (!topCareer) return [];
+
+    const rawMissing =
+      topCareer.missing_skills ||
+      [];
+
+    if (!Array.isArray(rawMissing)) {
+      return [];
+    }
+
+    return rawMissing
+      .map((item) => {
+        if (typeof item === "string") {
+          return item;
+        }
+
+        if (
+          item &&
+          typeof item === "object" &&
+          "name" in item
+        ) {
+          return String(item.name);
+        }
+
+        return "";
+      })
+      .filter(Boolean)
+      .slice(0, 4);
+  }, [topCareer]);
+
+  /*
+   * =========================================================
+   * SMART INSIGHT
+   * =========================================================
+   */
 
   const smartInsight = useMemo(() => {
     if (!user) {
@@ -431,6 +751,19 @@ function Dashboard() {
       };
     }
 
+    if (missingSkills.length > 0) {
+      return {
+        title: `Improve ${missingSkills[0]}`,
+        message: topCareer
+          ? `Your current profile is being matched with ${getCareerName(
+              topCareer,
+            )}. Adding ${missingSkills[0]} can strengthen your alignment with this path.`
+          : `Adding ${missingSkills[0]} can strengthen your professional skill profile.`,
+        action: "Explore Skills",
+        icon: "🧠",
+      };
+    }
+
     if (!user.bio) {
       return {
         title: "Tell us more about you",
@@ -441,6 +774,16 @@ function Dashboard() {
       };
     }
 
+    if (topCareer) {
+      return {
+        title: `You're aligned with ${getCareerName(topCareer)}`,
+        message:
+          "Your current skills are creating a stronger career match. Keep learning and use your recommended path to guide your next step.",
+        action: "Explore Career",
+        icon: "✨",
+      };
+    }
+
     return {
       title: "You're building strong momentum",
       message:
@@ -448,11 +791,89 @@ function Dashboard() {
       action: "Explore Career",
       icon: "✨",
     };
-  }, [user, profileCompletion, skills.length]);
+  }, [
+    user,
+    profileCompletion,
+    skills.length,
+    missingSkills,
+    topCareer,
+  ]);
 
-  /* =========================================================
-     LOADING
-  ========================================================= */
+  /*
+   * =========================================================
+   * NEXT BEST MOVE
+   * =========================================================
+   */
+
+  const nextBestMove = useMemo(() => {
+    if (!user || profileCompletion < 50) {
+      return {
+        title: "Complete your profile",
+        description:
+          "A complete profile helps SkillBridge personalize your career journey.",
+        action: "Update Profile",
+        link: null,
+        icon: "👤",
+      };
+    }
+
+    if (skills.length === 0) {
+      return {
+        title: "Add your first skill",
+        description:
+          "Tell SkillBridge what you already know so career matching can become more relevant.",
+        action: "Add Skills",
+        link: "/skills",
+        icon: "🎯",
+      };
+    }
+
+    if (missingSkills.length > 0) {
+      return {
+        title: `Learn ${missingSkills[0]}`,
+        description: topCareer
+          ? `This skill can help improve your alignment with ${getCareerName(
+              topCareer,
+            )}.`
+          : "This skill can strengthen your professional profile.",
+        action: "Explore Skills",
+        link: "/skills",
+        icon: "⚡",
+      };
+    }
+
+    if (topCareer) {
+      return {
+        title: `Explore ${getCareerName(topCareer)}`,
+        description:
+          "Your current profile has a promising match. Explore the career path to see the next steps.",
+        action: "View Career",
+        link: "/career",
+        icon: "🚀",
+      };
+    }
+
+    return {
+      title: "Explore your career path",
+      description:
+        "Discover career directions that align with the skills in your profile.",
+      action: "Explore Career",
+      link: "/career",
+      icon: "🧭",
+    };
+  }, [
+    user,
+    profileCompletion,
+    skills.length,
+    missingSkills,
+    topCareer,
+  ]);
+
+  /*
+   * =========================================================
+   * LOADING
+   * =========================================================
+   */
 
   if (loading) {
     return (
@@ -474,9 +895,11 @@ function Dashboard() {
     );
   }
 
-  /* =========================================================
-     ERROR
-  ========================================================= */
+  /*
+   * =========================================================
+   * ERROR
+   * =========================================================
+   */
 
   if (error) {
     return (
@@ -767,7 +1190,7 @@ function Dashboard() {
                   </span>
 
                   <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-[8px] font-extrabold text-[var(--primary)]">
-                    PERSONALIZED
+                    LIVE
                   </span>
                 </div>
 
@@ -793,7 +1216,7 @@ function Dashboard() {
                   ) : smartInsight.action === "Explore Career" ? (
                     <Link
                       to="/career"
-                      className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
+                      className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold !text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
                     >
                       Explore Career
                       <span>→</span>
@@ -821,7 +1244,7 @@ function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
-                  Career
+                  Career Intelligence
                 </p>
 
                 <h2 className="mt-1 text-lg font-extrabold text-[var(--text-heading)]">
@@ -851,12 +1274,424 @@ function Dashboard() {
               />
             </div>
 
-            <p className="mt-3 text-[10px] leading-5 opacity-50">
-              Based on your profile completeness and current skills.
-            </p>
+            <div className="mt-4 flex items-center justify-between text-[10px]">
+              <span className="opacity-50">
+                Intelligence status
+              </span>
+
+              <span className="font-bold text-[var(--primary)]">
+                {careerData.loading
+                  ? "Analyzing..."
+                  : topCareer
+                    ? "Live Career Match"
+                    : "Profile Analysis"}
+              </span>
+            </div>
 
           </div>
         </section>
+
+        {/* ===================================================
+            AI CAREER INTELLIGENCE CENTER
+        ==================================================== */}
+
+        <section className="mt-6 grid gap-5 lg:grid-cols-[1.25fr_0.75fr]">
+
+          {/* TOP CAREER MATCH */}
+
+          <div className="relative overflow-hidden rounded-[2rem] border border-[var(--primary)]/20 bg-[var(--surface)] p-6 shadow-lg sm:p-8">
+
+            <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[var(--primary-soft)] opacity-50 blur-3xl" />
+
+            <div className="relative">
+
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--primary)] text-white">
+                      ✨
+                    </span>
+
+                    <div>
+                      <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
+                        SkillBridge Intelligence
+                      </p>
+
+                      <h2 className="text-xl font-black text-[var(--text-heading)]">
+                        Your Career Match
+                      </h2>
+                    </div>
+                  </div>
+                </div>
+
+                <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-[9px] font-extrabold text-[var(--primary)]">
+                  DYNAMIC
+                </span>
+
+              </div>
+
+              {careerData.loading ? (
+                <div className="mt-7 flex items-center gap-3 rounded-2xl bg-[var(--bg)] p-5">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--primary)]" />
+
+                  <p className="text-sm font-semibold opacity-60">
+                    Analyzing your current skills...
+                  </p>
+                </div>
+              ) : topCareer ? (
+                <div className="mt-7">
+
+                  <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+
+                    <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[1.5rem] bg-[var(--primary-soft)] text-3xl">
+                      🚀
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+
+                      <p className="text-xs font-bold opacity-50">
+                        Top recommended career
+                      </p>
+
+                      <h3 className="mt-1 text-2xl font-black text-[var(--text-heading)]">
+                        {getCareerName(topCareer)}
+                      </h3>
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+
+                        <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-[10px] font-extrabold text-[var(--primary)]">
+                          {getCareerScore(topCareer)}% Match
+                        </span>
+
+                        <span className="rounded-full border border-[var(--border)] px-3 py-1.5 text-[10px] font-bold">
+                          Demand: {getCareerDemand(topCareer)}
+                        </span>
+
+                      </div>
+                    </div>
+
+                  </div>
+
+                  <div className="mt-6 grid gap-3 sm:grid-cols-3">
+
+                    <div className="rounded-2xl bg-[var(--bg)] p-4">
+                      <p className="text-[9px] font-extrabold uppercase tracking-wider opacity-45">
+                        Match
+                      </p>
+
+                      <p className="mt-2 text-xl font-black text-[var(--primary)]">
+                        {getCareerScore(topCareer)}%
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl bg-[var(--bg)] p-4">
+                      <p className="text-[9px] font-extrabold uppercase tracking-wider opacity-45">
+                        Demand
+                      </p>
+
+                      <p className="mt-2 truncate text-sm font-black text-[var(--text-heading)]">
+                        {getCareerDemand(topCareer)}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl bg-[var(--bg)] p-4">
+                      <p className="text-[9px] font-extrabold uppercase tracking-wider opacity-45">
+                        Salary
+                      </p>
+
+                      <p className="mt-2 truncate text-sm font-black text-[var(--text-heading)]">
+                        {getCareerSalary(topCareer)
+                          ? String(getCareerSalary(topCareer))
+                          : "Available in Career"}
+                      </p>
+                    </div>
+
+                  </div>
+
+                  <div className="mt-6">
+                    <Link
+                      to="/career"
+                      className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold !text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
+                    >
+                      View Full Career Analysis
+                      <span>→</span>
+                    </Link>
+                  </div>
+
+                </div>
+              ) : (
+                <div className="mt-7 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg)] p-6">
+
+                  <p className="text-sm font-bold text-[var(--text-heading)]">
+                    Career analysis needs more data
+                  </p>
+
+                  <p className="mt-2 text-xs leading-5 opacity-60">
+                    Add more skills to your profile to unlock a stronger career match.
+                  </p>
+
+                  <Link
+                    to="/skills"
+                    className="mt-4 inline-flex rounded-xl bg-[var(--primary)] px-4 py-2.5 text-xs font-bold text-white"
+                  >
+                    Add Skills →
+                  </Link>
+
+                </div>
+              )}
+
+            </div>
+          </div>
+
+          {/* NEXT BEST MOVE */}
+
+          <div className="relative overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-lg sm:p-7">
+
+            <div className="absolute -right-12 -top-12 h-36 w-36 rounded-full bg-[var(--primary-soft)] opacity-50 blur-3xl" />
+
+            <div className="relative">
+
+              <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
+                Personalized Action
+              </p>
+
+              <h2 className="mt-1 text-xl font-black text-[var(--text-heading)]">
+                Your Next Best Move
+              </h2>
+
+              <div className="mt-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-2xl">
+                {nextBestMove.icon}
+              </div>
+
+              <h3 className="mt-5 text-lg font-extrabold text-[var(--text-heading)]">
+                {nextBestMove.title}
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 opacity-60">
+                {nextBestMove.description}
+              </p>
+
+              <div className="mt-6">
+
+                {nextBestMove.link ? (
+                  <Link
+                    to={nextBestMove.link}
+                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold !text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
+                  >
+                    {nextBestMove.action}
+                    <span>→</span>
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleEditProfile}
+                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
+                  >
+                    {nextBestMove.action}
+                    <span>→</span>
+                  </button>
+                )}
+
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        {/* ===================================================
+            READINESS BREAKDOWN
+        ==================================================== */}
+
+        <section className="mt-6 rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-lg sm:p-8">
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+
+            <div>
+              <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
+                Intelligence Breakdown
+              </p>
+
+              <h2 className="mt-1 text-xl font-black text-[var(--text-heading)] sm:text-2xl">
+                Why your readiness looks this way
+              </h2>
+
+              <p className="mt-2 max-w-2xl text-sm leading-6 opacity-60">
+                Your readiness adapts to the information currently available in your profile and career match.
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-[var(--primary-soft)] px-4 py-2 text-center">
+              <span className="text-xs font-black text-[var(--primary)]">
+                {careerReadiness}% Overall
+              </span>
+            </div>
+
+          </div>
+
+          <div className="mt-7 grid gap-4 md:grid-cols-2">
+
+            {[
+              {
+                label: "Profile Health",
+                value: profileCompletion,
+                icon: "👤",
+                description: "Personal information completeness",
+              },
+              {
+                label: "Skill Foundation",
+                value: skillFoundationScore,
+                icon: "🎯",
+                description: `${skills.length} skill${
+                  skills.length === 1 ? "" : "s"
+                } connected`,
+              },
+              {
+                label: "Career Alignment",
+                value: careerAlignmentScore,
+                icon: "🚀",
+                description: topCareer
+                  ? `Based on ${getCareerName(topCareer)}`
+                  : "Waiting for career match",
+              },
+              {
+                label: "Learning Momentum",
+                value: learningMomentumScore,
+                icon: "📈",
+                description: "Current learning profile strength",
+              },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5"
+              >
+
+                <div className="flex items-center justify-between gap-4">
+
+                  <div className="flex min-w-0 items-center gap-3">
+
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--primary-soft)]">
+                      {item.icon}
+                    </div>
+
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-extrabold text-[var(--text-heading)]">
+                        {item.label}
+                      </p>
+
+                      <p className="mt-1 truncate text-[10px] opacity-50">
+                        {item.description}
+                      </p>
+                    </div>
+
+                  </div>
+
+                  <span className="text-lg font-black text-[var(--primary)]">
+                    {item.value}%
+                  </span>
+
+                </div>
+
+                <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--border)]">
+                  <div
+                    className="h-full rounded-full bg-[var(--primary)] transition-all duration-700"
+                    style={{
+                      width: `${item.value}%`,
+                    }}
+                  />
+                </div>
+
+              </div>
+            ))}
+
+          </div>
+        </section>
+
+        {/* ===================================================
+            MISSING SKILLS
+        ==================================================== */}
+
+        {topCareer && (
+          <section className="mt-6 rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-lg sm:p-8">
+
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+              <div>
+                <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
+                  Skill Gap Intelligence
+                </p>
+
+                <h2 className="mt-1 text-xl font-black text-[var(--text-heading)]">
+                  Skills to strengthen
+                </h2>
+
+                <p className="mt-2 text-sm opacity-60">
+                  Based on your current match for{" "}
+                  <span className="font-bold text-[var(--primary)]">
+                    {getCareerName(topCareer)}
+                  </span>
+                  .
+                </p>
+              </div>
+
+              <Link
+                to="/career"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--border)] px-4 py-2.5 text-xs font-bold text-[var(--text-heading)] transition hover:border-[var(--primary)] hover:text-[var(--primary)]"
+              >
+                Full Analysis
+                <span>→</span>
+              </Link>
+
+            </div>
+
+            {missingSkills.length > 0 ? (
+              <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+
+                {missingSkills.map((skillName) => (
+                  <div
+                    key={skillName}
+                    className="group rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-4 transition hover:-translate-y-1 hover:border-[var(--primary)]/40 hover:bg-[var(--primary-soft)]"
+                  >
+
+                    <div className="flex items-center justify-between">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-sm">
+                        +
+                      </span>
+
+                      <span className="text-xs font-black text-[var(--primary)]">
+                        Gap
+                      </span>
+                    </div>
+
+                    <p className="mt-4 text-sm font-extrabold text-[var(--text-heading)]">
+                      {skillName}
+                    </p>
+
+                    <Link
+                      to="/skills"
+                      className="mt-3 inline-flex text-[10px] font-bold text-[var(--primary)]"
+                    >
+                      Explore skill →
+                    </Link>
+
+                  </div>
+                ))}
+
+              </div>
+            ) : (
+              <div className="mt-6 rounded-2xl bg-[var(--primary-soft)] p-5">
+                <p className="text-sm font-extrabold text-[var(--text-heading)]">
+                  🎉 No major skill gaps reported
+                </p>
+
+                <p className="mt-1 text-xs leading-5 opacity-60">
+                  Your current profile is showing a strong alignment with this career path.
+                </p>
+              </div>
+            )}
+
+          </section>
+        )}
 
         {/* ===================================================
             OVERVIEW STATS
@@ -884,10 +1719,14 @@ function Dashboard() {
               description: readinessLabel,
             },
             {
-              icon: "📈",
-              label: "Journey",
-              value: "Active",
-              description: "Keep progressing",
+              icon: "🚀",
+              label: "Top Match",
+              value: topCareer
+                ? `${getCareerScore(topCareer)}%`
+                : "—",
+              description: topCareer
+                ? getCareerName(topCareer)
+                : "No match yet",
             },
           ].map((stat) => (
             <div
@@ -901,16 +1740,16 @@ function Dashboard() {
                   {stat.icon}
                 </div>
 
-                <span className="text-[9px] font-extrabold uppercase tracking-wider opacity-40">
+                <span className="max-w-[55%] truncate text-[9px] font-extrabold uppercase tracking-wider opacity-40">
                   {stat.label}
                 </span>
               </div>
 
-              <p className="relative mt-5 text-2xl font-black text-[var(--text-heading)]">
+              <p className="relative mt-5 truncate text-2xl font-black text-[var(--text-heading)]">
                 {stat.value}
               </p>
 
-              <p className="relative mt-1 text-xs opacity-55">
+              <p className="relative mt-1 truncate text-xs opacity-55">
                 {stat.description}
               </p>
             </div>
@@ -1065,7 +1904,9 @@ function Dashboard() {
 
                 <div className="mt-5 flex items-center justify-between rounded-xl bg-[var(--surface)]/80 px-4 py-3">
                   <span className="text-xs font-bold">
-                    Discover your path
+                    {topCareer
+                      ? `${getCareerScore(topCareer)}% current match`
+                      : "Discover your path"}
                   </span>
 
                   <span className="font-black text-[var(--primary)]">
@@ -1220,8 +2061,6 @@ function Dashboard() {
 
           {editMode ? (
             <div className="p-6 sm:p-8">
-
-              {/* EDIT INTRO */}
 
               <div className="mb-7 rounded-2xl border border-[var(--primary)]/15 bg-[var(--primary-soft)] p-5">
                 <div className="flex items-start gap-3">
