@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "../App.css";
 import { useNavigate } from "react-router-dom";
 import heroImage from "../assets/hero section.avif";
@@ -27,11 +27,186 @@ import {
   BriefcaseBusiness,
 } from "lucide-react";
 
+const API_URL = "http://127.0.0.1:8000";
+
+interface Skill {
+  id: number;
+  name: string;
+  description?: string;
+  category?: string;
+}
+
+interface Resource {
+  id: number;
+  title?: string;
+  name?: string;
+  resource_type?: string;
+  type?: string;
+  skill?: number | string;
+}
+
+interface CareerRecommendation {
+  id?: number;
+  title: string;
+  matchPercentage: number;
+  demandLevel: string;
+  averageSalary?: number | string | null;
+  missingSkills: string[];
+  careerUrl?: string | null;
+}
+
+const getToken = (): string | null => localStorage.getItem("access_token");
+
+const getArrayFromResponse = (data: unknown): unknown[] => {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === "object") {
+    const value = data as Record<string, unknown>;
+    if (Array.isArray(value.results)) return value.results;
+    if (Array.isArray(value.data)) return value.data;
+    if (Array.isArray(value.skills)) return value.skills;
+    if (Array.isArray(value.resources)) return value.resources;
+    if (Array.isArray(value.recommendations)) return value.recommendations;
+  }
+  return [];
+};
+
+const isSkill = (item: unknown): item is Skill => {
+  if (!item || typeof item !== "object") return false;
+  const value = item as Record<string, unknown>;
+  return typeof value.id === "number" && typeof value.name === "string";
+};
+
+const isResource = (item: unknown): item is Resource => {
+  if (!item || typeof item !== "object") return false;
+  const value = item as Record<string, unknown>;
+  return typeof value.id === "number";
+};
+
+const normalizeRecommendations = (data: unknown): CareerRecommendation[] => {
+  const recommendations: CareerRecommendation[] = [];
+
+  for (const item of getArrayFromResponse(data)) {
+    if (!item || typeof item !== "object") continue;
+
+    const value = item as Record<string, unknown>;
+    const rawMatch =
+      value.match_percentage ??
+      value.matchPercentage ??
+      value.match ??
+      value.score ??
+      0;
+    const match = Number(rawMatch);
+    const missingRaw = value.missing_skills ?? value.missingSkills ?? [];
+
+    const missingSkills: string[] = Array.isArray(missingRaw)
+      ? missingRaw
+          .map((skill) => {
+            if (typeof skill === "string") return skill;
+            if (skill && typeof skill === "object") {
+              const skillObject = skill as Record<string, unknown>;
+              return String(skillObject.name ?? skillObject.title ?? "");
+            }
+            return String(skill);
+          })
+          .filter(Boolean)
+      : [];
+
+    recommendations.push({
+      id: typeof value.id === "number" ? value.id : undefined,
+      title: String(
+        value.title ??
+          value.name ??
+          value.career ??
+          value.career_title ??
+          "Career Path",
+      ),
+      matchPercentage: Math.max(
+        0,
+        Math.min(100, Number.isFinite(match) ? Math.round(match) : 0),
+      ),
+      demandLevel: String(value.demand_level ?? value.demand ?? "—"),
+      averageSalary:
+  value.average_salary !== undefined &&
+  value.average_salary !== null
+    ? String(value.average_salary)
+    : value.salary !== undefined &&
+        value.salary !== null
+      ? String(value.salary)
+      : null,
+      missingSkills,
+      careerUrl:
+        value.career_url != null
+          ? String(value.career_url)
+          : value.url != null
+            ? String(value.url)
+            : null,
+    });
+  }
+
+  return recommendations;
+};
+
 function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [recommendations, setRecommendations] = useState<CareerRecommendation[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
 
   const navigate = useNavigate();
+
+  const fetchLandingData = async () => {
+    try {
+      setDataLoading(true);
+      const token = getToken();
+      const headers: HeadersInit = token
+        ? { Authorization: `Bearer ${token}` }
+        : {};
+
+      const requests: Promise<Response>[] = [
+        fetch(`${API_URL}/api/skills/`, { headers }),
+        fetch(`${API_URL}/api/resources/`, { headers }),
+      ];
+
+      if (token) {
+        requests.push(
+          fetch(`${API_URL}/api/career/recommendations/`, { headers }),
+        );
+      }
+
+      const responses = await Promise.allSettled(requests);
+
+      if (responses[0]?.status === "fulfilled" && responses[0].value.ok) {
+        const data: unknown = await responses[0].value.json();
+        setSkills(getArrayFromResponse(data).filter(isSkill));
+      }
+
+      if (responses[1]?.status === "fulfilled" && responses[1].value.ok) {
+        const data: unknown = await responses[1].value.json();
+        setResources(getArrayFromResponse(data).filter(isResource));
+      }
+
+      if (
+        token &&
+        responses[2]?.status === "fulfilled" &&
+        responses[2].value.ok
+      ) {
+        const data: unknown = await responses[2].value.json();
+        setRecommendations(normalizeRecommendations(data));
+      } else {
+        setRecommendations([]);
+      }
+    } catch (error) {
+      console.error("Landing page data error:", error);
+    } finally {
+      setDataLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchLandingData();
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
@@ -90,6 +265,26 @@ function App() {
     closeMenu();
     navigate("/skills");
   };
+
+  const topCareer = recommendations[0];
+  const dynamicProgress = topCareer?.matchPercentage ?? 0;
+  const skillCount = skills.length;
+  const resourceCount = resources.length;
+
+  const skillNames = useMemo(() => {
+    const fallback = [
+      "Web Development",
+      "AI & Machine Learning",
+      "Data & Analytics",
+      "UI / UX Design",
+      "Mobile Development",
+      "Career & Professional Skills",
+    ];
+
+    return Array.from({ length: 6 }, (_, index) => {
+      return skills[index]?.name || fallback[index];
+    });
+  }, [skills]);
 
   return (
     <div
@@ -452,11 +647,11 @@ function App() {
 
                     <div>
                       <span>Learning Journey</span>
-                      <strong>72%</strong>
+                      <strong>{dataLoading ? "—" : `${dynamicProgress}%`}</strong>
                     </div>
 
                     <div className="progress-track">
-                      <div className="progress-fill" />
+                      <div className="progress-fill" style={{ width: `${dynamicProgress}%` }} />
                     </div>
 
                   </div>
@@ -529,7 +724,7 @@ function App() {
                   <span className="skill-number">01</span>
                 </div>
 
-                <h3>Web Development</h3>
+                <h3>{skillNames[0]}</h3>
 
                 <p>
                   Build modern websites and applications with frontend
@@ -558,7 +753,7 @@ function App() {
                   <span className="skill-number">02</span>
                 </div>
 
-                <h3>AI & Machine Learning</h3>
+                <h3>{skillNames[1]}</h3>
 
                 <p>
                   Learn artificial intelligence and machine learning
@@ -587,7 +782,7 @@ function App() {
                   <span className="skill-number">03</span>
                 </div>
 
-                <h3>Data & Analytics</h3>
+                <h3>{skillNames[2]}</h3>
 
                 <p>
                   Turn data into meaningful insights and develop
@@ -616,7 +811,7 @@ function App() {
                   <span className="skill-number">04</span>
                 </div>
 
-                <h3>UI / UX Design</h3>
+                <h3>{skillNames[3]}</h3>
 
                 <p>
                   Create useful, accessible, and beautiful digital
@@ -645,7 +840,7 @@ function App() {
                   <span className="skill-number">05</span>
                 </div>
 
-                <h3>Mobile Development</h3>
+                <h3>{skillNames[4]}</h3>
 
                 <p>
                   Learn how to create modern mobile applications and
@@ -674,7 +869,7 @@ function App() {
                   <span className="skill-number">06</span>
                 </div>
 
-                <h3>Career & Professional Skills</h3>
+                <h3>{skillNames[5]}</h3>
 
                 <p>
                   Develop communication, problem-solving, and career
@@ -728,6 +923,15 @@ function App() {
                   Find useful learning resources in one place and
                   build a learning path that works for your goals.
                 </p>
+
+                <div className="mt-6 flex flex-wrap gap-3 text-sm text-[var(--text)]">
+                  <span className="rounded-full border border-[var(--border)] px-3 py-1.5">
+                    {dataLoading ? "Loading..." : `${resourceCount} learning resources`}
+                  </span>
+                  <span className="rounded-full border border-[var(--border)] px-3 py-1.5">
+                    {dataLoading ? "Syncing..." : `${skillCount} skills available`}
+                  </span>
+                </div>
 
                 <button
                   type="button"
@@ -845,6 +1049,32 @@ function App() {
                   learning path, and take meaningful steps toward the
                   career you want.
                 </p>
+
+                {topCareer && (
+                  <div className="mx-auto mt-7 max-w-2xl rounded-2xl border border-[var(--border)] bg-[var(--surface)]/70 p-4 text-left backdrop-blur-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text)]">
+                          AI Career Match
+                        </span>
+                        <h3 className="mt-1 text-lg font-bold text-[var(--text-heading)]">
+                          {topCareer.title}
+                        </h3>
+                      </div>
+                      <div className="rounded-full border border-[var(--border)] px-3 py-1.5 text-sm font-bold text-[var(--primary)]">
+                        {topCareer.matchPercentage}% match
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--text)]">
+                      <span className="rounded-full border border-[var(--border)] px-2.5 py-1">
+                        Demand: {topCareer.demandLevel}
+                      </span>
+                      <span className="rounded-full border border-[var(--border)] px-2.5 py-1">
+                        {topCareer.missingSkills.length} skill{topCareer.missingSkills.length === 1 ? "" : "s"} to improve
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
 
@@ -1111,7 +1341,7 @@ function App() {
           FOOTER
       ====================================================== */}
 
-      <footer className="mt-8 border-t border-[var(--border)] bg-[var(--surface)]">
+      <div className="mt-8 border-t border-[var(--border)] bg-[var(--surface)]">
 
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 
@@ -1145,7 +1375,7 @@ function App() {
 
         </div>
 
-      </footer>
+      </div>
       </footer>
 
     </div>

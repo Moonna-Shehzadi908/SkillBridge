@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ThemeToggle from "../components/ThemeToggle";
@@ -70,6 +69,8 @@ function Skills() {
     }
 
     try {
+      setError("");
+
       const response = await fetch(`${API_URL}/api/skills/`, {
         method: "GET",
         headers: {
@@ -232,7 +233,7 @@ function Skills() {
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
 
       if (response.status === 401) {
         handleUnauthorized();
@@ -620,7 +621,6 @@ function Skills() {
                   <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[var(--primary)] opacity-0 blur-3xl transition-all duration-500 group-hover:opacity-15" />
 
                   <div className="relative flex h-full flex-col">
-                    {/* Top row */}
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-xl font-bold text-[var(--primary)] shadow-sm transition-all duration-300 group-hover:-translate-y-0.5 group-hover:scale-105">
                         {index === 0
@@ -635,12 +635,10 @@ function Skills() {
                       </span>
                     </div>
 
-                    {/* Title */}
                     <h3 className="mt-6 text-xl font-bold leading-7 text-[var(--text-heading)] transition-colors duration-300 group-hover:text-[var(--primary)]">
                       {recommendation.name}
                     </h3>
 
-                    {/* Category */}
                     {recommendation.category && (
                       <div className="mt-3">
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-xs font-bold text-[var(--primary)] transition-all duration-300 group-hover:bg-[var(--primary)] group-hover:text-white">
@@ -650,7 +648,6 @@ function Skills() {
                       </div>
                     )}
 
-                    {/* Reason */}
                     <div className="mt-5 rounded-2xl border border-indigo-100 bg-white/70 p-4 dark:border-[var(--border)] dark:bg-[var(--surface)]/60">
                       <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">
                         Why this skill?
@@ -661,13 +658,11 @@ function Skills() {
                       </p>
                     </div>
 
-                    {/* Description */}
                     <p className="mt-4 min-h-[48px] flex-1 text-sm leading-6">
                       {recommendation.description ||
                         "A useful skill to add to your learning journey."}
                     </p>
 
-                    {/* Bottom */}
                     <div className="mt-7 border-t border-indigo-100 pt-5 dark:border-[var(--border)]">
                       <button
                         type="button"

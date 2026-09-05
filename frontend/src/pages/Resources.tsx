@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ThemeToggle from "../components/ThemeToggle";
@@ -24,6 +23,11 @@ interface Resource {
   updated_at: string;
 }
 
+interface ResourceRecommendation extends Resource {
+  match_score: number;
+  reason: string;
+}
+
 function Resources() {
   const navigate = useNavigate();
 
@@ -36,6 +40,16 @@ function Resources() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState("");
+
+  // =========================
+  // AI Recommendation State
+  // =========================
+
+  const [aiRecommendations, setAiRecommendations] = useState<
+    ResourceRecommendation[]
+  >([]);
+  const [aiLoading, setAiLoading] = useState(true);
+  const [aiError, setAiError] = useState("");
 
   // =========================
   // Search & Filter State
@@ -121,12 +135,65 @@ function Resources() {
   );
 
   // =========================
-  // Initial API Call
+  // Fetch AI Recommendations
+  // =========================
+
+  const fetchAiRecommendations = useCallback(async () => {
+    const token = getToken();
+
+    if (!token) {
+      handleUnauthorized();
+      return;
+    }
+
+    setAiLoading(true);
+    setAiError("");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/api/resources/recommendations/`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (response.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          "Unable to load personalized recommendations.",
+        );
+      }
+
+      const data: ResourceRecommendation[] = await response.json();
+
+      setAiRecommendations(data);
+    } catch (err) {
+      setAiError(
+        err instanceof Error
+          ? err.message
+          : "Unable to load personalized recommendations.",
+      );
+    } finally {
+      setAiLoading(false);
+    }
+  }, []);
+
+  // =========================
+  // Initial API Calls
   // =========================
 
   useEffect(() => {
     fetchResources();
-  }, [fetchResources]);
+    fetchAiRecommendations();
+  }, [fetchResources, fetchAiRecommendations]);
 
   // =========================
   // Resource Type Helpers
@@ -197,18 +264,20 @@ function Resources() {
   }, [resources]);
 
   // =========================
-  // Recommended Resources
+  // AI Recommended Resources
   // =========================
 
   const recommendedResources = useMemo(() => {
     if (selectedSkill === "all") {
-      return resources.slice(0, 3);
+      return aiRecommendations.slice(0, 3);
     }
 
-    return resources
-      .filter((resource) => resource.skill_name === selectedSkill)
+    return aiRecommendations
+      .filter(
+        (resource) => resource.skill_name === selectedSkill,
+      )
       .slice(0, 3);
-  }, [resources, selectedSkill]);
+  }, [aiRecommendations, selectedSkill]);
 
   // =========================
   // Filter Resources
@@ -336,7 +405,10 @@ function Resources() {
 
             <button
               type="button"
-              onClick={() => fetchResources(true)}
+              onClick={() => {
+                fetchResources(true);
+                fetchAiRecommendations();
+              }}
               disabled={refreshing}
               aria-label={
                 refreshing
@@ -591,46 +663,104 @@ function Resources() {
         )}
 
         {/* =========================
-            Recommended Resources
+            AI Recommended Resources
         ========================== */}
 
-        {resources.length > 0 &&
-          recommendedResources.length > 0 && (
-            <section className="mb-11 overflow-hidden rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-violet-50 shadow-lg shadow-indigo-100/40 dark:border-[var(--border)] dark:from-[var(--surface)] dark:via-[var(--surface)] dark:to-[var(--bg)]">
+        {resources.length > 0 && (
+          <section className="mb-11 overflow-hidden rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-violet-50 shadow-lg shadow-indigo-100/40 dark:border-[var(--border)] dark:from-[var(--surface)] dark:via-[var(--surface)] dark:to-[var(--bg)]">
 
-              <div className="flex flex-col gap-3 border-b border-indigo-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7 dark:border-[var(--border)]">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--primary)]">
-                    ✦ Smart learning
-                  </p>
+            <div className="flex flex-col gap-3 border-b border-indigo-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7 dark:border-[var(--border)]">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--primary)]">
+                  ✦ AI powered learning
+                </p>
 
-                  <h2 className="mt-1 text-xl font-bold text-[var(--text-heading)]">
-                    {selectedSkill !== "all"
-                      ? `Resources for ${selectedSkill}`
-                      : "Recommended for you"}
-                  </h2>
+                <h2 className="mt-1 text-xl font-bold text-[var(--text-heading)]">
+                  {selectedSkill !== "all"
+                    ? `AI Resources for ${selectedSkill}`
+                    : "AI Recommended for You"}
+                </h2>
 
-                  <p className="mt-1 text-xs">
-                    A quick starting point from your available
-                    learning resources.
-                  </p>
+                <p className="mt-1 text-xs">
+                  Personalized resources based on your selected skills.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  document
+                    .getElementById("resource-library")
+                    ?.scrollIntoView({
+                      behavior: "smooth",
+                    })
+                }
+                className="self-start rounded-xl bg-gradient-to-r from-[var(--primary)] to-indigo-500 px-4 py-2.5 text-xs font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:from-indigo-500 hover:to-violet-500 sm:self-auto"
+              >
+                View Library →
+              </button>
+            </div>
+
+            {aiLoading ? (
+              <div className="flex flex-col items-center justify-center px-5 py-12 text-center">
+                <div className="relative h-11 w-11">
+                  <div className="absolute inset-0 rounded-full bg-[var(--primary)]/10 blur-lg" />
+                  <div className="relative h-11 w-11 animate-spin rounded-full border-[3px] border-indigo-100 border-t-[var(--primary)] dark:border-[var(--border)]" />
                 </div>
+
+                <p className="mt-4 text-sm font-bold text-[var(--text-heading)]">
+                  AI is finding resources for you...
+                </p>
+
+                <p className="mt-1 text-xs">
+                  Matching resources with your skills
+                </p>
+              </div>
+            ) : aiError ? (
+              <div className="px-5 py-10 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/10 text-xl">
+                  !
+                </div>
+
+                <h3 className="mt-4 font-bold text-[var(--text-heading)]">
+                  Recommendations unavailable
+                </h3>
+
+                <p className="mt-1 text-xs text-red-600 dark:text-red-300">
+                  {aiError}
+                </p>
 
                 <button
                   type="button"
-                  onClick={() =>
-                    document
-                      .getElementById("resource-library")
-                      ?.scrollIntoView({
-                        behavior: "smooth",
-                      })
-                  }
-                  className="self-start rounded-xl bg-gradient-to-r from-[var(--primary)] to-indigo-500 px-4 py-2.5 text-xs font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:from-indigo-500 hover:to-violet-500 sm:self-auto"
+                  onClick={fetchAiRecommendations}
+                  className="mt-5 rounded-xl bg-gradient-to-r from-[var(--primary)] to-indigo-500 px-4 py-2.5 text-xs font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:from-indigo-500 hover:to-violet-500"
                 >
-                  View Library →
+                  Try Again
                 </button>
               </div>
+            ) : recommendedResources.length === 0 ? (
+              <div className="px-5 py-10 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-xl">
+                  ✨
+                </div>
 
+                <h3 className="mt-4 font-bold text-[var(--text-heading)]">
+                  Build your skill profile
+                </h3>
+
+                <p className="mx-auto mt-1 max-w-md text-xs leading-5">
+                  Select skills in the Skills page to unlock
+                  personalized AI resource recommendations.
+                </p>
+
+                <Link
+                  to="/skills"
+                  className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--primary)] to-indigo-500 px-4 py-2.5 text-xs font-bold !text-white shadow-md transition hover:-translate-y-0.5 hover:from-indigo-500 hover:to-violet-500"
+                >
+                  Build My Skills →
+                </Link>
+              </div>
+            ) : (
               <div className="grid gap-4 p-5 sm:grid-cols-3 sm:p-7">
                 {recommendedResources.map((resource) => (
                   <a
@@ -645,8 +775,8 @@ function Resources() {
                         {getResourceIcon(resource.resource_type)}
                       </span>
 
-                      <span className="text-xs text-[var(--primary)] transition-transform group-hover:translate-x-1">
-                        ↗
+                      <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-[10px] font-bold text-[var(--primary)]">
+                        {resource.match_score}% Match
                       </span>
                     </div>
 
@@ -656,8 +786,18 @@ function Resources() {
 
                     <p className="mt-2 line-clamp-2 text-xs leading-5">
                       {resource.description ||
-                        "Explore this learning resource."}
+                        "Explore this personalized learning resource."}
                     </p>
+
+                    <div className="mt-4 rounded-xl bg-[var(--primary-soft)]/60 px-3 py-2.5">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--primary)]">
+                        Why recommended?
+                      </p>
+
+                      <p className="mt-1 text-[11px] leading-5">
+                        {resource.reason}
+                      </p>
+                    </div>
 
                     <div className="mt-4 flex items-center justify-between gap-2">
                       <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-[10px] font-bold text-[var(--primary)]">
@@ -673,8 +813,9 @@ function Resources() {
                   </a>
                 ))}
               </div>
-            </section>
-          )}
+            )}
+          </section>
+        )}
 
         {/* =========================
             Search & Filters
@@ -1055,7 +1196,7 @@ function Resources() {
                 Keep building your future
               </h2>
 
-              <p className=" text-center text-sm leading-6 dark:text-[var(--text)]">
+              <p className="text-center text-sm leading-6 dark:text-[var(--text)]">
                 Every resource you explore is another step toward
                 stronger skills, better opportunities, and your
                 career goals.
