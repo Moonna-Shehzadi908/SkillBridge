@@ -1,8 +1,8 @@
 # SkillBridge — Smart Skill & Career Development Platform
 
-SkillBridge is a full-stack web application designed to help learners discover and develop relevant skills, access learning resources, and explore career opportunities based on their interests and learning goals.
+SkillBridge is a full-stack web application designed to help learners discover and develop relevant skills, access personalized learning resources, and explore suitable career opportunities based on their skills and learning goals.
 
-The platform provides a structured learning experience through skill management, learning resources, career exploration, user authentication, and personalized user profiles.
+The platform provides a structured learning experience through skill management, personalized recommendations, learning resources, career exploration, user authentication, and learner profiles.
 
 ---
 
@@ -14,10 +14,14 @@ SkillBridge aims to bridge the gap between learning and career development by pr
 * Explore available skills
 * Add skills to their personal skill profile
 * Remove selected skills
-* Discover learning resources
+* Receive personalized skill recommendations
+* Discover relevant learning resources
+* Receive recommended learning resources based on selected skills
 * Explore relevant career paths
 * View required skills and career information
-* Access career resources through external links
+* Identify career demand levels
+* View career matching and recommendation scores
+* Access career and learning resources through external links
 
 The project is being developed as part of the **Full-Stack Web Development Internship at Zynvex Solutions**.
 
@@ -32,6 +36,7 @@ The project is being developed as part of the **Full-Stack Web Development Inter
 * Tailwind CSS
 * React Router
 * Vite
+* Lucide React
 
 ### Backend
 
@@ -46,6 +51,7 @@ The project is being developed as part of the **Full-Stack Web Development Inter
 ### Authentication
 
 * JWT (JSON Web Tokens)
+* Bearer Token Authentication
 
 ### Development Tools
 
@@ -58,7 +64,7 @@ The project is being developed as part of the **Full-Stack Web Development Inter
 
 # 📦 Module 1 — Project Setup, Authentication & User Profiles
 
-Module 1 focuses on establishing the core foundation of SkillBridge, including the project structure, authentication, user profile functionality, skill management, learning resources, and career exploration interfaces.
+Module 1 established the core foundation of SkillBridge, including project setup, authentication, user profile functionality, and the initial interfaces for skills, learning resources, and career exploration.
 
 ## ✅ Module 1 Completed Work
 
@@ -87,24 +93,24 @@ Module 1 focuses on establishing the core foundation of SkillBridge, including t
 * Connected frontend pages with backend APIs.
 * Established the foundation for personalized learner profiles.
 
-### 4. Skills Management
+### 4. Initial Skills Management
 
 SkillBridge provides a dedicated skill-management experience where users can:
 
-* View all available skills.
+* View available skills.
 * View their selected skills.
 * Add skills to their profile.
 * Remove skills from their profile.
-* See skill categories and descriptions.
-* Track the number of available and selected skills.
+* View skill categories and descriptions.
+* Track available and selected skills.
 
-The Skills page was also improved with a responsive and professional user interface.
+### 5. Initial Learning Resources
 
-### 5. Learning Resources
+* Implemented the initial Resources page.
+* Created the foundation for displaying learning materials.
+* Connected the frontend resource interface with backend functionality.
 
-The Resources page was enhanced to provide learners with a cleaner and more professional interface for discovering learning materials.
-
-### 6. Career Exploration
+### 6. Initial Career Exploration
 
 A dedicated Career page was implemented where users can:
 
@@ -115,15 +121,155 @@ A dedicated Career page was implemented where users can:
 * Identify career demand levels.
 * Open external career resources through provided links.
 
-The Career page UI was also improved as part of the Module 1 completion work.
+---
+
+# 🤖 Module 2 — Dynamic Skills, Smart Recommendations & Career Matching
+
+Module 2 focuses on transforming SkillBridge from a primarily interface-based platform into a more **dynamic and personalized learning and career experience**.
+
+The major functionality introduced in this module includes dynamic backend integration, personalized skill recommendations, recommended learning resources, and AI-style career matching based on user skills.
+
+## ✅ Module 2 Completed Work
+
+### 1. Dynamic Skills Management
+
+The Skills module was connected with the backend APIs to provide real-time user-specific data.
+
+Users can now:
+
+* Fetch available skills dynamically from the backend.
+* View their currently selected skills.
+* Add skills to their profile.
+* Remove skills from their profile.
+* Receive personalized skill recommendations.
+* View recommended skills based on their existing skill profile.
+* See dynamic skill statistics.
+* Handle loading, error, and authentication states.
+
+### 2. Smart Skill Recommendations
+
+A recommendation system was added to suggest additional skills based on the user's existing skill profile.
+
+The recommendation experience includes:
+
+* Personalized recommended skills.
+* Recommendation scoring.
+* Skill-based matching.
+* Dynamic recommendation data from the backend.
+* Clear explanations for recommended skills.
+
+This provides a more personalized experience instead of showing the same static skill suggestions to every learner.
+
+### 3. Dynamic Learning Resources
+
+The Resources module was enhanced with backend-driven learning content.
+
+Users can:
+
+* View available learning resources dynamically.
+* Search resources.
+* Filter resources by skill.
+* Filter resources by resource type.
+* Open external learning resources.
+* View resource descriptions.
+* Identify the related skill for each resource.
+* Refresh resource data.
+
+Supported resource types include:
+
+* Articles
+* Videos
+* Courses
+* Documentation
+
+### 4. Personalized Resource Recommendations
+
+A recommendation system was added to the Resources module.
+
+Recommended resources are generated according to the user's selected skills and resource characteristics.
+
+The recommendation system considers factors such as:
+
+* User-selected skills
+* Resource descriptions
+* Resource type
+* Related skill
+* Recommendation match score
+
+Each recommendation can also provide a reason explaining why the resource is relevant to the learner.
+
+### 5. AI Career Matching
+
+The Career module was enhanced with personalized career matching functionality.
+
+Career recommendations are generated by comparing the user's skills with the skills required for available career paths.
+
+The matching system includes:
+
+* User skill normalization.
+* Required-skill matching.
+* Career match scoring.
+* Skill-based career recommendations.
+* Career demand-based scoring.
+* Career ranking.
+* Match percentage / score presentation.
+* Required skills information.
+* Career descriptions.
+* Salary information when available.
+* External career resources.
+
+Career demand levels are also considered during the matching process to make recommendations more useful for career planning.
+
+### 6. Dynamic API Integration
+
+Module 2 significantly expanded communication between the React frontend and Django REST Framework backend.
+
+Important integrated endpoints include:
+
+```text
+/api/skills/
+/api/skills/recommendations/
+/api/accounts/me/skills/
+/api/resources/
+/api/resources/recommendations/
+/api/career/
+```
+
+Authenticated endpoints use JWT Bearer authentication.
+
+Example:
+
+```text
+Authorization: Bearer <access_token>
+```
+
+### 7. Improved User Experience
+
+The major Module 2 features were integrated while maintaining the existing SkillBridge design system.
+
+Improvements include:
+
+* Dynamic loading states
+* Error handling
+* Empty states
+* Responsive layouts
+* Interactive cards
+* Recommendation sections
+* Match score indicators
+* Skill-based filtering
+* Professional hover effects
+* Light/dark theme compatibility
+* Consistent typography and spacing
+* Responsive navigation
+* Improved visual hierarchy
 
 ---
 
 # 🎨 UI & User Experience
 
-The frontend follows a clean, modern, and responsive design approach.
+The SkillBridge frontend follows a clean, modern, responsive, and professional design approach.
 
-Key UI improvements include:
+Key UI features include:
 
 * Responsive layouts for different screen sizes
 * Professional card-based interfaces
@@ -135,6 +281,8 @@ Key UI improvements include:
 * Accessible buttons and navigation
 * Responsive navigation
 * Consistent spacing, typography, borders, and shadows
+* Personalized recommendation sections
+* Dynamic data presentation
 
 ---
 
@@ -145,7 +293,10 @@ SkillBridge/
 │
 ├── backend/
 │   ├── apps/
-│   │   └── accounts/
+│   │   ├── accounts/
+│   │   ├── skills/
+│   │   ├── resources/
+│   │   └── career/
 │   ├── config/
 │   ├── manage.py
 │   └── ...
@@ -169,12 +320,37 @@ SkillBridge/
 
 The React frontend communicates with the Django REST Framework backend through REST APIs.
 
-Examples of integrated functionality include:
+### Skills
 
 ```text
-/api/skills/
-/api/accounts/me/skills/
-/api/career/
+GET  /api/skills/
+GET  /api/skills/recommendations/
+GET  /api/accounts/me/skills/
+POST /api/accounts/me/skills/
+DELETE /api/accounts/me/skills/{skillId}/
+```
+
+### Resources
+
+```text
+GET /api/resources/
+GET /api/resources/recommendations/
+```
+
+Resources also support filtering and searching through query parameters.
+
+Examples:
+
+```text
+/api/resources/?search=Python
+/api/resources/?skill=4
+/api/resources/?resource_type=video
+```
+
+### Career
+
+```text
+GET /api/career/
 ```
 
 Authenticated requests use JWT Bearer authentication.
@@ -272,11 +448,19 @@ https://github.com/Moonna-Shehzadi908/SkillBridge
 
 ---
 
-# 📌 Module 1 Status
+# 📌 Module Status
+
+### Module 1
 
 **Status: Completed ✅**
 
-Module 1 includes the initial project setup, authentication foundation, user profile foundation, skill management, learning resources interface, and career exploration functionality.
+Module 1 established the project foundation, authentication, user profile functionality, initial skills management, learning resources, and career exploration.
+
+### Module 2
+
+**Status: Completed ✅**
+
+Module 2 introduced dynamic backend-driven functionality, personalized skill recommendations, recommended learning resources, and skill-based career matching.
 
 ---
 
@@ -289,6 +473,30 @@ Module 1 includes the initial project setup, authentication foundation, user pro
 
 ---
 
-## 🌱 Future Development
+# 🔮 Future Development
 
-Future modules will continue expanding SkillBridge with additional learning, progress-tracking, and career-development functionality.
+Future modules will continue expanding SkillBridge with advanced AI-powered and career-development functionality.
+
+Planned enhancements include:
+
+* AI-powered SkillBridge Chatbot
+* Intelligent learning assistance
+* Personalized learning guidance
+* Advanced career recommendations
+* Learning progress tracking
+* Skill development tracking
+* Personalized learning paths
+* Additional AI-powered features
+* Enhanced learner analytics
+
+---
+
+## 🌱 Project Vision
+
+SkillBridge is designed to evolve into an intelligent learning and career-development platform that helps learners understand **what to learn, how to learn it, and where those skills can take their careers**.
+
+---
+
+## About
+
+A full-stack skill and career development platform that helps learners discover skills, access personalized learning resources, track their progress, and explore relevant career opportunities.
