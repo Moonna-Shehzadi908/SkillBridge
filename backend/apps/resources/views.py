@@ -1,17 +1,17 @@
-
 from django.db.models import Q
 
 from rest_framework import generics, permissions
-
-from .models import Resource
-from .serializers import ResourceSerializer
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from .models import Resource, ResourceProgress
 
 from .serializers import (
     ResourceSerializer,
     ResourceRecommendationSerializer,
+    ResourceProgressSerializer,
 )
+
 from .services import get_recommended_resources
 
 
@@ -63,6 +63,7 @@ class ResourceDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ResourceSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+
 class ResourceRecommendationView(APIView):
     """
     Return personalized learning resources for
@@ -72,8 +73,6 @@ class ResourceRecommendationView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        # Ask the service layer to calculate personalized
-        # resources based on the user's selected skills.
         recommendations = get_recommended_resources(
             request.user
         )
@@ -81,19 +80,180 @@ class ResourceRecommendationView(APIView):
         data = []
 
         for recommendation in recommendations:
-            # Serialize the actual Resource object.
             serializer = ResourceRecommendationSerializer(
                 recommendation["resource"]
             )
 
             item = serializer.data
 
-            # These two values are calculated by the
-            # recommendation service rather than stored
-            # permanently in the database.
             item["match_score"] = recommendation["match_score"]
             item["reason"] = recommendation["reason"]
 
             data.append(item)
 
         return Response(data)
+
+
+class ResourceProgressListCreateView(APIView):
+    """
+    List the current user's learning progress
+    and create/update progress for a resource.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        """
+        Return all progress records belonging to
+        the currently authenticated user.
+        """
+
+        progress_records = (
+            ResourceProgress.objects
+            .select_related(
+                "resource",
+                "resource__skill",
+            )
+            .filter(user=request.user)
+        )
+
+        serializer = ResourceProgressSerializer(
+            progress_records,
+            many=True,
+        )
+
+        return Response(serializer.data)
+
+    def post(self, request):
+        """
+        Create progress for a resource.
+
+        If progress already exists for the same user
+        and resource, update that existing record.
+        """
+
+        resource_id = request.data.get("resource")
+
+        if not resource_id:
+            return Response(
+                {
+                    "detail": "Resource ID is required."
+                },
+                status=400,
+            )
+
+        try:
+            resource = Resource.objects.select_related(
+                "skill"
+            ).get(id=resource_id)
+
+        except Resource.DoesNotExist:
+            return Response(
+                {
+                    "detail": "Resource not found."
+                },
+                status=404,
+            )
+
+        progress, created = ResourceProgress.objects.get_or_create(
+            user=request.user,
+            resource=resource,
+        )
+
+        serializer = ResourceProgressSerializer(
+            progress,
+            data=request.data,
+            partial=True,
+        )
+
+        if serializer.is_valid():
+            progress = serializer.save()
+
+            return Response(
+                ResourceProgressSerializer(progress).data,
+                status=201 if created else 200,
+            )
+
+        return Response(
+            serializer.errors,
+            status=400,
+        )
+
+
+class ResourceProgressDetailView(APIView):
+    """
+    Retrieve and update progress for a specific resource.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self, request, resource_id):
+        try:
+            return ResourceProgress.objects.select_related(
+                "resource",
+                "resource__skill",
+            ).get(
+                user=request.user,
+                resource_id=resource_id,
+            )
+
+        except ResourceProgress.DoesNotExist:
+            return None
+
+    def get(self, request, resource_id):
+        """
+        Return progress for one resource.
+        """
+
+        progress = self.get_object(
+            request,
+            resource_id,
+        )
+
+        if progress is None:
+            return Response(
+                {
+                    "detail": "Progress not found."
+                },
+                status=404,
+            )
+
+        serializer = ResourceProgressSerializer(progress)
+
+        return Response(serializer.data)
+
+    def patch(self, request, resource_id):
+        """
+        Update progress for one resource.
+        """
+
+        progress = self.get_object(
+            request,
+            resource_id,
+        )
+
+        if progress is None:
+            return Response(
+                {
+                    "detail": "Progress not found."
+                },
+                status=404,
+            )
+
+        serializer = ResourceProgressSerializer(
+            progress,
+            data=request.data,
+            partial=True,
+        )
+
+        if serializer.is_valid():
+            progress = serializer.save()
+
+            return Response(
+                ResourceProgressSerializer(progress).data
+            )
+
+        return Response(
+            serializer.errors,
+            status=400,
+        )

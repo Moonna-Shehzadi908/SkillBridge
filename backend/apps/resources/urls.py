@@ -1,10 +1,11 @@
-
 from django.urls import path
 
 from .views import (
     ResourceDetailView,
     ResourceListCreateView,
     ResourceRecommendationView,
+    ResourceProgressListCreateView,
+    ResourceProgressDetailView,
 )
 
 
@@ -15,7 +16,18 @@ urlpatterns = [
         name="resource-list-create",
     ),
 
-    # Personalized resources based on the user's skills.
+    path(
+        "progress/",
+        ResourceProgressListCreateView.as_view(),
+        name="resource-progress-list-create",
+    ),
+
+    path(
+        "progress/<int:resource_id>/",
+        ResourceProgressDetailView.as_view(),
+        name="resource-progress-detail",
+    ),
+
     path(
         "recommendations/",
         ResourceRecommendationView.as_view(),
