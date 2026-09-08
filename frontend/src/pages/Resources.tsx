@@ -1511,6 +1511,7 @@ function Resources() {
                 <h2 className="mt-1 text-2xl font-bold tracking-tight text-[var(--text-heading)] sm:text-3xl">
                   Explore Resources
                 </h2>
+                
               </div>
 
               <div className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-[var(--text)]">

@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -196,7 +197,9 @@ function Dashboard() {
         }
 
         if (!response.ok) {
-          throw new Error("Career recommendations are currently unavailable.");
+          throw new Error(
+            "Career recommendations are currently unavailable.",
+          );
         }
 
         const data = await response.json();
@@ -216,6 +219,7 @@ function Dashboard() {
          *   results: [...]
          * }
          */
+
         let recommendations: CareerRecommendation[] = [];
 
         if (Array.isArray(data)) {
@@ -238,6 +242,7 @@ function Dashboard() {
          * Dashboard must remain functional even if Career API
          * is unavailable.
          */
+
         setCareerData({
           loading: false,
           error:
@@ -570,16 +575,6 @@ function Dashboard() {
    * =========================================================
    * DYNAMIC CAREER READINESS
    * =========================================================
-   *
-   * The dashboard score now combines:
-   *
-   * 1. Profile health
-   * 2. Current skills
-   * 3. Bio / professional context
-   * 4. Real career recommendation score
-   *
-   * If Career API is unavailable, the profile-based
-   * calculation safely remains active.
    */
 
   const careerReadiness = useMemo(() => {
@@ -588,6 +583,7 @@ function Dashboard() {
     /*
      * Skill foundation
      */
+
     if (skills.length >= 1) score += 3;
     if (skills.length >= 3) score += 5;
     if (skills.length >= 5) score += 5;
@@ -595,16 +591,15 @@ function Dashboard() {
     /*
      * Professional context
      */
+
     if (user?.bio && user.bio.length >= 80) {
       score += 5;
     }
 
     /*
      * Real career alignment
-     *
-     * We only use this when backend actually returns
-     * a valid recommendation score.
      */
+
     if (topCareer) {
       const match = getCareerScore(topCareer);
 
@@ -972,51 +967,67 @@ function Dashboard() {
       ====================================================== */}
 
       <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]/85 backdrop-blur-2xl">
-        <div className="mx-auto flex min-h-[70px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex min-h-[70px] max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
+
+          {/* LOGO */}
 
           <Link
             to="/"
-            className="group flex items-center gap-3"
+            className="group flex shrink-0 items-center gap-3"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary)] text-lg font-black text-white shadow-lg transition duration-300 group-hover:scale-105">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary)] text-white font-bold">
               S
             </div>
 
-            <span className="text-lg font-extrabold tracking-tight text-[var(--text-heading)] sm:text-xl">
-              Skill<span className="text-[var(--primary)]">Bridge</span>
+            <span className="hidden text-lg font-bold text-[var(--text-heading)] sm:block">
+              SkillBridge
             </span>
           </Link>
 
-          <nav className="hidden items-center gap-1 md:flex">
+          {/* NAV */}
+
+          <nav className="hidden flex-1 items-center justify-center gap-1 md:flex">
+
             <Link
               to="/skills"
-              className="rounded-xl px-4 py-2 text-sm font-semibold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
+              className="whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
             >
               Skills
             </Link>
 
             <Link
               to="/resources"
-              className="rounded-xl px-4 py-2 text-sm font-semibold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
+              className="whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
             >
               Resources
             </Link>
 
             <Link
               to="/career"
-              className="rounded-xl bg-[var(--primary-soft)] px-4 py-2 text-sm font-bold text-[var(--primary)]"
+              className="whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
             >
               Career
             </Link>
+
+            <Link
+              to="/opportunities"
+              className="whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
+            >
+              Opportunities
+            </Link>
+
           </nav>
+
+          {/* LOGOUT */}
 
           <button
             type="button"
             onClick={handleLogout}
-            className="rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-bold text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-[var(--primary-hover)] hover:shadow-lg sm:px-5"
+            className="shrink-0 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-bold text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-[var(--primary-hover)] hover:shadow-lg sm:px-5"
           >
             Log out
           </button>
+
         </div>
       </header>
 
@@ -1120,6 +1131,7 @@ function Dashboard() {
             <div className="border-t border-[var(--border)] bg-[var(--bg)]/60 p-6 lg:border-l lg:border-t-0 lg:p-8">
 
               <div className="flex items-start justify-between">
+
                 <div>
                   <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
                     Profile health
@@ -1133,6 +1145,7 @@ function Dashboard() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-sm font-black text-[var(--primary)]">
                   {profileCompletion}%
                 </div>
+
               </div>
 
               <div className="mt-6 h-2.5 overflow-hidden rounded-full bg-[var(--border)]">
@@ -1145,6 +1158,7 @@ function Dashboard() {
               </div>
 
               <div className="mt-4 flex items-center justify-between">
+
                 <span className="text-xs opacity-50">
                   Profile status
                 </span>
@@ -1154,6 +1168,7 @@ function Dashboard() {
                     ? "Complete"
                     : "In Progress"}
                 </span>
+
               </div>
 
               <p className="mt-5 text-xs leading-5 opacity-55">
@@ -1185,6 +1200,7 @@ function Dashboard() {
               <div className="min-w-0 flex-1">
 
                 <div className="flex flex-wrap items-center gap-2">
+
                   <span className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
                     Smart Career Insight
                   </span>
@@ -1192,6 +1208,7 @@ function Dashboard() {
                   <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-[8px] font-extrabold text-[var(--primary)]">
                     LIVE
                   </span>
+
                 </div>
 
                 <h2 className="mt-2 text-xl font-extrabold text-[var(--text-heading)] sm:text-2xl">
@@ -1242,6 +1259,7 @@ function Dashboard() {
           <div className="rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-lg">
 
             <div className="flex items-center justify-between">
+
               <div>
                 <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
                   Career Intelligence
@@ -1252,10 +1270,14 @@ function Dashboard() {
                 </h2>
               </div>
 
-              <div className="text-2xl">🚀</div>
+              <div className="text-2xl">
+                🚀
+              </div>
+
             </div>
 
             <div className="mt-6 flex items-end justify-between">
+
               <span className="text-4xl font-black text-[var(--text-heading)]">
                 {careerReadiness}%
               </span>
@@ -1263,18 +1285,22 @@ function Dashboard() {
               <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-[9px] font-extrabold text-[var(--primary)]">
                 {readinessLabel}
               </span>
+
             </div>
 
             <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--border)]">
+
               <div
                 className="h-full rounded-full bg-[var(--primary)] transition-all duration-700"
                 style={{
                   width: `${careerReadiness}%`,
                 }}
               />
+
             </div>
 
             <div className="mt-4 flex items-center justify-between text-[10px]">
+
               <span className="opacity-50">
                 Intelligence status
               </span>
@@ -1286,6 +1312,7 @@ function Dashboard() {
                     ? "Live Career Match"
                     : "Profile Analysis"}
               </span>
+
             </div>
 
           </div>
@@ -1309,11 +1336,13 @@ function Dashboard() {
 
                 <div>
                   <div className="flex items-center gap-2">
+
                     <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--primary)] text-white">
                       ✨
                     </span>
 
                     <div>
+
                       <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
                         SkillBridge Intelligence
                       </p>
@@ -1321,7 +1350,9 @@ function Dashboard() {
                       <h2 className="text-xl font-black text-[var(--text-heading)]">
                         Your Career Match
                       </h2>
+
                     </div>
+
                   </div>
                 </div>
 
@@ -1332,14 +1363,19 @@ function Dashboard() {
               </div>
 
               {careerData.loading ? (
+
                 <div className="mt-7 flex items-center gap-3 rounded-2xl bg-[var(--bg)] p-5">
+
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--primary)]" />
 
                   <p className="text-sm font-semibold opacity-60">
                     Analyzing your current skills...
                   </p>
+
                 </div>
+
               ) : topCareer ? (
+
                 <div className="mt-7">
 
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
@@ -1369,13 +1405,14 @@ function Dashboard() {
                         </span>
 
                       </div>
-                    </div>
 
+                    </div>
                   </div>
 
                   <div className="mt-6 grid gap-3 sm:grid-cols-3">
 
                     <div className="rounded-2xl bg-[var(--bg)] p-4">
+
                       <p className="text-[9px] font-extrabold uppercase tracking-wider opacity-45">
                         Match
                       </p>
@@ -1383,9 +1420,11 @@ function Dashboard() {
                       <p className="mt-2 text-xl font-black text-[var(--primary)]">
                         {getCareerScore(topCareer)}%
                       </p>
+
                     </div>
 
                     <div className="rounded-2xl bg-[var(--bg)] p-4">
+
                       <p className="text-[9px] font-extrabold uppercase tracking-wider opacity-45">
                         Demand
                       </p>
@@ -1393,9 +1432,11 @@ function Dashboard() {
                       <p className="mt-2 truncate text-sm font-black text-[var(--text-heading)]">
                         {getCareerDemand(topCareer)}
                       </p>
+
                     </div>
 
                     <div className="rounded-2xl bg-[var(--bg)] p-4">
+
                       <p className="text-[9px] font-extrabold uppercase tracking-wider opacity-45">
                         Salary
                       </p>
@@ -1405,11 +1446,13 @@ function Dashboard() {
                           ? String(getCareerSalary(topCareer))
                           : "Available in Career"}
                       </p>
+
                     </div>
 
                   </div>
 
                   <div className="mt-6">
+
                     <Link
                       to="/career"
                       className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold !text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
@@ -1417,10 +1460,13 @@ function Dashboard() {
                       View Full Career Analysis
                       <span>→</span>
                     </Link>
+
                   </div>
 
                 </div>
+
               ) : (
+
                 <div className="mt-7 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg)] p-6">
 
                   <p className="text-sm font-bold text-[var(--text-heading)]">
@@ -1439,6 +1485,7 @@ function Dashboard() {
                   </Link>
 
                 </div>
+
               )}
 
             </div>
@@ -1475,6 +1522,7 @@ function Dashboard() {
               <div className="mt-6">
 
                 {nextBestMove.link ? (
+
                   <Link
                     to={nextBestMove.link}
                     className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold !text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
@@ -1482,7 +1530,9 @@ function Dashboard() {
                     {nextBestMove.action}
                     <span>→</span>
                   </Link>
+
                 ) : (
+
                   <button
                     type="button"
                     onClick={handleEditProfile}
@@ -1491,6 +1541,7 @@ function Dashboard() {
                     {nextBestMove.action}
                     <span>→</span>
                   </button>
+
                 )}
 
               </div>
@@ -1508,6 +1559,7 @@ function Dashboard() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
 
             <div>
+
               <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
                 Intelligence Breakdown
               </p>
@@ -1519,12 +1571,15 @@ function Dashboard() {
               <p className="mt-2 max-w-2xl text-sm leading-6 opacity-60">
                 Your readiness adapts to the information currently available in your profile and career match.
               </p>
+
             </div>
 
             <div className="rounded-xl bg-[var(--primary-soft)] px-4 py-2 text-center">
+
               <span className="text-xs font-black text-[var(--primary)]">
                 {careerReadiness}% Overall
               </span>
+
             </div>
 
           </div>
@@ -1561,6 +1616,7 @@ function Dashboard() {
                 description: "Current learning profile strength",
               },
             ].map((item) => (
+
               <div
                 key={item.label}
                 className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5"
@@ -1575,6 +1631,7 @@ function Dashboard() {
                     </div>
 
                     <div className="min-w-0">
+
                       <p className="truncate text-sm font-extrabold text-[var(--text-heading)]">
                         {item.label}
                       </p>
@@ -1582,8 +1639,8 @@ function Dashboard() {
                       <p className="mt-1 truncate text-[10px] opacity-50">
                         {item.description}
                       </p>
-                    </div>
 
+                    </div>
                   </div>
 
                   <span className="text-lg font-black text-[var(--primary)]">
@@ -1593,12 +1650,14 @@ function Dashboard() {
                 </div>
 
                 <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--border)]">
+
                   <div
                     className="h-full rounded-full bg-[var(--primary)] transition-all duration-700"
                     style={{
                       width: `${item.value}%`,
                     }}
                   />
+
                 </div>
 
               </div>
@@ -1617,6 +1676,7 @@ function Dashboard() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
               <div>
+
                 <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
                   Skill Gap Intelligence
                 </p>
@@ -1632,6 +1692,7 @@ function Dashboard() {
                   </span>
                   .
                 </p>
+
               </div>
 
               <Link
@@ -1645,15 +1706,18 @@ function Dashboard() {
             </div>
 
             {missingSkills.length > 0 ? (
+
               <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 
                 {missingSkills.map((skillName) => (
+
                   <div
                     key={skillName}
                     className="group rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-4 transition hover:-translate-y-1 hover:border-[var(--primary)]/40 hover:bg-[var(--primary-soft)]"
                   >
 
                     <div className="flex items-center justify-between">
+
                       <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-sm">
                         +
                       </span>
@@ -1661,6 +1725,7 @@ function Dashboard() {
                       <span className="text-xs font-black text-[var(--primary)]">
                         Gap
                       </span>
+
                     </div>
 
                     <p className="mt-4 text-sm font-extrabold text-[var(--text-heading)]">
@@ -1678,8 +1743,11 @@ function Dashboard() {
                 ))}
 
               </div>
+
             ) : (
+
               <div className="mt-6 rounded-2xl bg-[var(--primary-soft)] p-5">
+
                 <p className="text-sm font-extrabold text-[var(--text-heading)]">
                   🎉 No major skill gaps reported
                 </p>
@@ -1687,7 +1755,9 @@ function Dashboard() {
                 <p className="mt-1 text-xs leading-5 opacity-60">
                   Your current profile is showing a strong alignment with this career path.
                 </p>
+
               </div>
+
             )}
 
           </section>
@@ -1729,13 +1799,16 @@ function Dashboard() {
                 : "No match yet",
             },
           ].map((stat) => (
+
             <div
               key={stat.label}
               className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[var(--primary)]/30 hover:shadow-lg"
             >
+
               <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-[var(--primary-soft)] opacity-0 blur-2xl transition duration-300 group-hover:opacity-80" />
 
               <div className="relative flex items-center justify-between">
+
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-lg">
                   {stat.icon}
                 </div>
@@ -1743,6 +1816,7 @@ function Dashboard() {
                 <span className="max-w-[55%] truncate text-[9px] font-extrabold uppercase tracking-wider opacity-40">
                   {stat.label}
                 </span>
+
               </div>
 
               <p className="relative mt-5 truncate text-2xl font-black text-[var(--text-heading)]">
@@ -1752,6 +1826,7 @@ function Dashboard() {
               <p className="relative mt-1 truncate text-xs opacity-55">
                 {stat.description}
               </p>
+
             </div>
           ))}
 
@@ -1764,11 +1839,13 @@ function Dashboard() {
         <section className="mt-12">
 
           <div className="mb-6">
+
             <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
               Your Workspace
             </p>
 
             <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+
               <h2 className="text-2xl font-black tracking-tight text-[var(--text-heading)] sm:text-3xl">
                 Continue your journey
               </h2>
@@ -1776,25 +1853,37 @@ function Dashboard() {
               <p className="text-xs opacity-50">
                 Build • Learn • Grow
               </p>
+
             </div>
 
             <p className="mt-2 max-w-2xl text-sm opacity-65">
               Everything you need to strengthen your skills and move toward the right career path.
             </p>
+
           </div>
 
-          <div className="grid gap-5 md:grid-cols-3">
+          {/* =================================================
+              WORKSPACE CARDS
+              Skills → Resources → Career → Opportunities
+          ================================================== */}
 
-            {/* SKILLS */}
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+
+            {/* =================================================
+                SKILLS
+            ================================================== */}
 
             <Link
               to="/skills"
               className="group relative overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition duration-300 hover:-translate-y-2 hover:border-[var(--primary)]/40 hover:shadow-xl"
             >
+
               <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[var(--primary-soft)] opacity-0 blur-3xl transition duration-500 group-hover:opacity-100" />
 
               <div className="relative">
+
                 <div className="flex items-center justify-between">
+
                   <div className="flex h-13 w-13 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-2xl">
                     🎯
                   </div>
@@ -1802,6 +1891,7 @@ function Dashboard() {
                   <span className="text-lg opacity-30 transition group-hover:translate-x-1 group-hover:text-[var(--primary)] group-hover:opacity-100">
                     →
                   </span>
+
                 </div>
 
                 <p className="mt-6 text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
@@ -1817,6 +1907,7 @@ function Dashboard() {
                 </p>
 
                 <div className="mt-5 flex items-center justify-between rounded-xl bg-[var(--bg)] px-4 py-3">
+
                   <span className="text-xs font-bold">
                     Current skills
                   </span>
@@ -1824,20 +1915,27 @@ function Dashboard() {
                   <span className="font-black text-[var(--primary)]">
                     {skills.length}
                   </span>
+
                 </div>
+
               </div>
             </Link>
 
-            {/* RESOURCES */}
+            {/* =================================================
+                RESOURCES
+            ================================================== */}
 
             <Link
               to="/resources"
               className="group relative overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition duration-300 hover:-translate-y-2 hover:border-[var(--primary)]/40 hover:shadow-xl"
             >
+
               <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[var(--primary-soft)] opacity-0 blur-3xl transition duration-500 group-hover:opacity-100" />
 
               <div className="relative">
+
                 <div className="flex items-center justify-between">
+
                   <div className="flex h-13 w-13 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-2xl">
                     📚
                   </div>
@@ -1845,6 +1943,7 @@ function Dashboard() {
                   <span className="text-lg opacity-30 transition group-hover:translate-x-1 group-hover:text-[var(--primary)] group-hover:opacity-100">
                     →
                   </span>
+
                 </div>
 
                 <p className="mt-6 text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
@@ -1860,6 +1959,7 @@ function Dashboard() {
                 </p>
 
                 <div className="mt-5 flex items-center justify-between rounded-xl bg-[var(--bg)] px-4 py-3">
+
                   <span className="text-xs font-bold">
                     Explore learning
                   </span>
@@ -1867,20 +1967,27 @@ function Dashboard() {
                   <span className="font-black text-[var(--primary)]">
                     →
                   </span>
+
                 </div>
+
               </div>
             </Link>
 
-            {/* CAREER */}
+            {/* =================================================
+                CAREER
+            ================================================== */}
 
             <Link
               to="/career"
               className="group relative overflow-hidden rounded-[2rem] border border-[var(--primary)]/20 bg-[var(--primary-soft)]/30 p-6 shadow-sm transition duration-300 hover:-translate-y-2 hover:border-[var(--primary)]/50 hover:shadow-xl"
             >
+
               <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[var(--primary-soft)] opacity-50 blur-3xl transition duration-500 group-hover:scale-125" />
 
               <div className="relative">
+
                 <div className="flex items-center justify-between">
+
                   <div className="flex h-13 w-13 items-center justify-center rounded-2xl bg-[var(--primary)] text-2xl text-white shadow-lg">
                     🚀
                   </div>
@@ -1888,6 +1995,7 @@ function Dashboard() {
                   <span className="text-lg opacity-40 transition group-hover:translate-x-1 group-hover:text-[var(--primary)] group-hover:opacity-100">
                     →
                   </span>
+
                 </div>
 
                 <p className="mt-6 text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
@@ -1903,6 +2011,7 @@ function Dashboard() {
                 </p>
 
                 <div className="mt-5 flex items-center justify-between rounded-xl bg-[var(--surface)]/80 px-4 py-3">
+
                   <span className="text-xs font-bold">
                     {topCareer
                       ? `${getCareerScore(topCareer)}% current match`
@@ -1912,7 +2021,62 @@ function Dashboard() {
                   <span className="font-black text-[var(--primary)]">
                     →
                   </span>
+
                 </div>
+
+              </div>
+            </Link>
+
+            {/* =================================================
+                OPPORTUNITIES
+                NEW CARD
+            ================================================== */}
+
+            <Link
+              to="/opportunities"
+              className="group relative overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition duration-300 hover:-translate-y-2 hover:border-[var(--primary)]/40 hover:shadow-xl"
+            >
+
+              <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[var(--primary-soft)] opacity-0 blur-3xl transition duration-500 group-hover:opacity-100" />
+
+              <div className="relative">
+
+                <div className="flex items-center justify-between">
+
+                  <div className="flex h-13 w-13 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-2xl">
+                    💼
+                  </div>
+
+                  <span className="text-lg opacity-30 transition group-hover:translate-x-1 group-hover:text-[var(--primary)] group-hover:opacity-100">
+                    →
+                  </span>
+
+                </div>
+
+                <p className="mt-6 text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
+                  Career Opportunities
+                </p>
+
+                <h3 className="mt-1 text-xl font-extrabold text-[var(--text-heading)]">
+                  Opportunities
+                </h3>
+
+                <p className="mt-2 min-h-[48px] text-sm leading-6 opacity-60">
+                  Discover internships, jobs and other opportunities that match your skills.
+                </p>
+
+                <div className="mt-5 flex items-center justify-between rounded-xl bg-[var(--bg)] px-4 py-3">
+
+                  <span className="text-xs font-bold">
+                    Explore opportunities
+                  </span>
+
+                  <span className="font-black text-[var(--primary)]">
+                    →
+                  </span>
+
+                </div>
+
               </div>
             </Link>
 
@@ -1928,12 +2092,15 @@ function Dashboard() {
           <div className="flex flex-col gap-5 border-b border-[var(--border)] p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
 
             <div>
+
               <div className="flex items-center gap-3">
+
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--primary-soft)]">
                   🎯
                 </div>
 
                 <div>
+
                   <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
                     Skill Profile
                   </p>
@@ -1941,12 +2108,15 @@ function Dashboard() {
                   <h2 className="mt-1 text-xl font-extrabold text-[var(--text-heading)]">
                     Your skills
                   </h2>
+
                 </div>
+
               </div>
 
               <p className="mt-3 text-sm opacity-60">
                 Skills currently connected to your profile.
               </p>
+
             </div>
 
             <Link
@@ -1956,18 +2126,22 @@ function Dashboard() {
               Manage Skills
               <span>→</span>
             </Link>
+
           </div>
 
           <div className="p-6 sm:p-8">
 
             {skills.length > 0 ? (
+
               <div className="flex flex-wrap gap-3">
 
                 {skills.slice(0, 8).map((skill) => (
+
                   <div
                     key={skill.id}
                     className="group rounded-2xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 transition duration-200 hover:-translate-y-1 hover:border-[var(--primary)]/40 hover:bg-[var(--primary-soft)]"
                   >
+
                     <p className="text-sm font-bold text-[var(--text-heading)]">
                       {skill.name}
                     </p>
@@ -1977,20 +2151,26 @@ function Dashboard() {
                         {skill.category}
                       </p>
                     )}
+
                   </div>
+
                 ))}
 
                 {skills.length > 8 && (
+
                   <Link
                     to="/skills"
                     className="flex items-center rounded-2xl border border-dashed border-[var(--border)] px-4 py-3 text-sm font-bold text-[var(--primary)] transition hover:border-[var(--primary)] hover:bg-[var(--primary-soft)]"
                   >
                     +{skills.length - 8} more
                   </Link>
+
                 )}
 
               </div>
+
             ) : (
+
               <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg)] p-10 text-center">
 
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-2xl">
@@ -2013,6 +2193,7 @@ function Dashboard() {
                 </Link>
 
               </div>
+
             )}
 
           </div>
@@ -2032,6 +2213,7 @@ function Dashboard() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
               <div>
+
                 <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
                   Account Settings
                 </p>
@@ -2043,9 +2225,11 @@ function Dashboard() {
                 <p className="mt-2 text-sm opacity-60">
                   Keep your personal and professional information up to date.
                 </p>
+
               </div>
 
               {!editMode && (
+
                 <button
                   type="button"
                   onClick={handleEditProfile}
@@ -2054,21 +2238,26 @@ function Dashboard() {
                   Edit Profile
                   <span>✎</span>
                 </button>
+
               )}
 
             </div>
           </div>
 
           {editMode ? (
+
             <div className="p-6 sm:p-8">
 
               <div className="mb-7 rounded-2xl border border-[var(--primary)]/15 bg-[var(--primary-soft)] p-5">
+
                 <div className="flex items-start gap-3">
+
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--primary)] text-white">
                     ✎
                   </div>
 
                   <div>
+
                     <h3 className="font-extrabold text-[var(--text-heading)]">
                       Update your profile
                     </h3>
@@ -2076,7 +2265,9 @@ function Dashboard() {
                     <p className="mt-1 text-xs leading-5 opacity-65">
                       Make your profile more complete and professional.
                     </p>
+
                   </div>
+
                 </div>
               </div>
 
@@ -2085,6 +2276,7 @@ function Dashboard() {
                 {/* PHOTO */}
 
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5">
+
                   <p className="mb-4 text-sm font-bold text-[var(--text-heading)]">
                     Profile Picture
                   </p>
@@ -2092,18 +2284,23 @@ function Dashboard() {
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
 
                     {avatarUrl ? (
+
                       <img
                         src={avatarUrl}
                         alt="Profile preview"
                         className="h-24 w-24 rounded-2xl object-cover shadow-lg ring-2 ring-[var(--primary-soft)]"
                       />
+
                     ) : (
+
                       <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-3xl font-black text-[var(--primary)]">
                         {avatarLetter}
                       </div>
+
                     )}
 
                     <div>
+
                       <label
                         htmlFor="profile_picture"
                         className="inline-flex cursor-pointer rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
@@ -2129,6 +2326,7 @@ function Dashboard() {
                           Selected: {selectedImage.name}
                         </p>
                       )}
+
                     </div>
                   </div>
                 </div>
@@ -2138,6 +2336,7 @@ function Dashboard() {
                 <div className="grid gap-5 sm:grid-cols-2">
 
                   <div>
+
                     <label
                       htmlFor="first_name"
                       className="mb-2 block text-sm font-bold text-[var(--text-heading)]"
@@ -2155,9 +2354,11 @@ function Dashboard() {
                       autoComplete="given-name"
                       className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:opacity-40 focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary-soft)]"
                     />
+
                   </div>
 
                   <div>
+
                     <label
                       htmlFor="last_name"
                       className="mb-2 block text-sm font-bold text-[var(--text-heading)]"
@@ -2175,6 +2376,7 @@ function Dashboard() {
                       autoComplete="family-name"
                       className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:opacity-40 focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary-soft)]"
                     />
+
                   </div>
 
                 </div>
@@ -2182,6 +2384,7 @@ function Dashboard() {
                 {/* EMAIL */}
 
                 <div>
+
                   <label
                     htmlFor="email"
                     className="mb-2 block text-sm font-bold text-[var(--text-heading)]"
@@ -2199,11 +2402,13 @@ function Dashboard() {
                     autoComplete="email"
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:opacity-40 focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary-soft)]"
                   />
+
                 </div>
 
                 {/* LOCATION */}
 
                 <div>
+
                   <label
                     htmlFor="location"
                     className="mb-2 block text-sm font-bold text-[var(--text-heading)]"
@@ -2221,11 +2426,13 @@ function Dashboard() {
                     autoComplete="address-level2"
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:opacity-40 focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary-soft)]"
                   />
+
                 </div>
 
                 {/* BIO */}
 
                 <div>
+
                   <label
                     htmlFor="bio"
                     className="mb-2 block text-sm font-bold text-[var(--text-heading)]"
@@ -2242,6 +2449,7 @@ function Dashboard() {
                     placeholder="Tell us a little about yourself..."
                     className="w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:opacity-40 focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary-soft)]"
                   />
+
                 </div>
 
                 {/* ACTIONS */}
@@ -2267,6 +2475,7 @@ function Dashboard() {
                   </button>
 
                   {saveMessage && (
+
                     <p
                       role="status"
                       aria-live="polite"
@@ -2278,12 +2487,15 @@ function Dashboard() {
                     >
                       {saveMessage}
                     </p>
+
                   )}
 
                 </div>
               </div>
             </div>
+
           ) : (
+
             <div className="p-6 sm:p-8">
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -2308,10 +2520,12 @@ function Dashboard() {
                     value: fullName,
                   },
                 ].map((item) => (
+
                   <div
                     key={item.label}
                     className="group rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5 transition duration-200 hover:-translate-y-0.5 hover:border-[var(--primary)]/30"
                   >
+
                     <p className="text-[9px] font-extrabold uppercase tracking-[0.15em] opacity-45">
                       {item.label}
                     </p>
@@ -2319,10 +2533,13 @@ function Dashboard() {
                     <p className="mt-2 break-words text-sm font-bold text-[var(--text-heading)] transition group-hover:text-[var(--primary)]">
                       {item.value}
                     </p>
+
                   </div>
+
                 ))}
 
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5 sm:col-span-2">
+
                   <p className="text-[9px] font-extrabold uppercase tracking-[0.15em] opacity-45">
                     Professional Bio
                   </p>
@@ -2330,17 +2547,21 @@ function Dashboard() {
                   <p className="mt-2 whitespace-pre-line text-sm leading-7 text-[var(--text-heading)] opacity-75">
                     {user?.bio || "No bio added yet."}
                   </p>
+
                 </div>
 
               </div>
 
               {saveMessage && (
+
                 <p className="mt-5 rounded-xl bg-[var(--primary-soft)] px-4 py-3 text-sm font-semibold text-[var(--primary)]">
                   ✓ {saveMessage}
                 </p>
+
               )}
 
             </div>
+
           )}
 
         </section>
@@ -2384,10 +2605,10 @@ function Dashboard() {
               </Link>
 
               <Link
-                to="/resources"
+                to="/opportunities"
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-6 py-3 text-sm font-bold text-[var(--text-heading)] transition hover:-translate-y-1 hover:border-[var(--primary)] hover:text-[var(--primary)]"
               >
-                Browse Resources
+                Browse Opportunities
               </Link>
 
             </div>
@@ -2406,30 +2627,58 @@ function Dashboard() {
               Quick Navigation
             </p>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
 
               <Link
                 to="/skills"
                 className="rounded-xl bg-[var(--bg)] px-3 py-4 text-center text-xs font-bold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
               >
-                <span className="text-lg">🎯</span>
-                <span className="mt-1.5 block">Skills</span>
+                <span className="text-lg">
+                  🎯
+                </span>
+
+                <span className="mt-1.5 block">
+                  Skills
+                </span>
               </Link>
 
               <Link
                 to="/resources"
                 className="rounded-xl bg-[var(--bg)] px-3 py-4 text-center text-xs font-bold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
               >
-                <span className="text-lg">📚</span>
-                <span className="mt-1.5 block">Resources</span>
+                <span className="text-lg">
+                  📚
+                </span>
+
+                <span className="mt-1.5 block">
+                  Resources
+                </span>
               </Link>
 
               <Link
                 to="/career"
                 className="rounded-xl bg-[var(--bg)] px-3 py-4 text-center text-xs font-bold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
               >
-                <span className="text-lg">🚀</span>
-                <span className="mt-1.5 block">Career</span>
+                <span className="text-lg">
+                  🚀
+                </span>
+
+                <span className="mt-1.5 block">
+                  Career
+                </span>
+              </Link>
+
+              <Link
+                to="/opportunities"
+                className="rounded-xl bg-[var(--bg)] px-3 py-4 text-center text-xs font-bold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
+              >
+                <span className="text-lg">
+                  💼
+                </span>
+
+                <span className="mt-1.5 block">
+                  Opportunities
+                </span>
               </Link>
 
             </div>
@@ -2455,7 +2704,6 @@ function Dashboard() {
           </p>
 
         </div>
-
       </footer>
 
     </div>
