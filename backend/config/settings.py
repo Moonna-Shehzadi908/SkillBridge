@@ -40,10 +40,13 @@ INSTALLED_APPS = [
 
     "rest_framework",
     "corsheaders",
+
     "apps.accounts.apps.AccountsConfig",
     "apps.skills.apps.SkillsConfig",
     "apps.resources.apps.ResourcesConfig",
-"apps.career.apps.CareerConfig",]
+    "apps.career.apps.CareerConfig",
+    "apps.opportunities.apps.OpportunitiesConfig",
+]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
