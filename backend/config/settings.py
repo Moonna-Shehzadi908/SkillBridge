@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "apps.resources.apps.ResourcesConfig",
     "apps.career.apps.CareerConfig",
     "apps.opportunities.apps.OpportunitiesConfig",
+    "apps.chatbot.apps.ChatbotConfig",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

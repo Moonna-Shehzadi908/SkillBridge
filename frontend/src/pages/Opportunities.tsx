@@ -124,7 +124,7 @@ function getMatchLabel(score?: number) {
 
 function getMatchClasses(score?: number) {
   if (score === undefined) {
-    return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200";
+    return "bg-[var(--surface-soft)] text-[var(--text)]";
   }
 
   if (score >= 90) {
@@ -139,30 +139,32 @@ function getMatchClasses(score?: number) {
     return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300";
   }
 
-  return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200";
+  return "bg-[var(--surface-soft)] text-[var(--text)]";
 }
 
 function Opportunities() {
   const navigate = useNavigate();
 
-  const [opportunities, setOpportunities] = useState<
-    Opportunity[]
-  >([]);
+  const [opportunities, setOpportunities] =
+    useState<Opportunity[]>([]);
 
-  const [userSkills, setUserSkills] = useState<
-    UserSkill[]
-  >([]);
+  const [userSkills, setUserSkills] =
+    useState<UserSkill[]>([]);
 
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [remoteOnly, setRemoteOnly] = useState(false);
+  const [typeFilter, setTypeFilter] =
+    useState("all");
+  const [remoteOnly, setRemoteOnly] =
+    useState(false);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] =
+    useState(true);
   const [skillsLoading, setSkillsLoading] =
     useState(true);
 
   const [error, setError] = useState("");
-  const [skillsError, setSkillsError] = useState("");
+  const [skillsError, setSkillsError] =
+    useState("");
 
   const handleUnauthorized = useCallback(() => {
     localStorage.removeItem("access_token");
@@ -170,110 +172,114 @@ function Opportunities() {
     navigate("/login");
   }, [navigate]);
 
-  const fetchOpportunities = useCallback(async () => {
-    const token = getToken();
+  const fetchOpportunities =
+    useCallback(async () => {
+      const token = getToken();
 
-    if (!token) {
-      handleUnauthorized();
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-
-    try {
-      const response = await fetch(
-        `${API_URL}/api/opportunities/`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      if (response.status === 401) {
+      if (!token) {
         handleUnauthorized();
         return;
       }
 
-      if (!response.ok) {
-        throw new Error(
-          "Unable to load opportunities.",
-        );
-      }
+      setLoading(true);
+      setError("");
 
-      const data = await response.json();
-
-      setOpportunities(
-        Array.isArray(data) ? data : data.results ?? [],
-      );
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to load opportunities.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [handleUnauthorized]);
-
-  const fetchUserSkills = useCallback(async () => {
-    const token = getToken();
-
-    if (!token) {
-      return;
-    }
-
-    setSkillsLoading(true);
-    setSkillsError("");
-
-    try {
-      const response = await fetch(
-        `${API_URL}/api/accounts/me/skills/`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
+      try {
+        const response = await fetch(
+          `${API_URL}/api/opportunities/`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           },
-        },
-      );
+        );
 
-      if (response.status === 401) {
-        handleUnauthorized();
+        if (response.status === 401) {
+          handleUnauthorized();
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            "Unable to load opportunities.",
+          );
+        }
+
+        const data = await response.json();
+
+        setOpportunities(
+          Array.isArray(data)
+            ? data
+            : data.results ?? [],
+        );
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to load opportunities.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    }, [handleUnauthorized]);
+
+  const fetchUserSkills =
+    useCallback(async () => {
+      const token = getToken();
+
+      if (!token) {
         return;
       }
 
-      if (!response.ok) {
-        throw new Error(
-          "Unable to load your skills.",
+      setSkillsLoading(true);
+      setSkillsError("");
+
+      try {
+        const response = await fetch(
+          `${API_URL}/api/accounts/me/skills/`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
         );
+
+        if (response.status === 401) {
+          handleUnauthorized();
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            "Unable to load your skills.",
+          );
+        }
+
+        const data = await response.json();
+
+        let skills: UserSkill[] = [];
+
+        if (Array.isArray(data)) {
+          skills = data;
+        } else if (Array.isArray(data.skills)) {
+          skills = data.skills;
+        } else if (Array.isArray(data.results)) {
+          skills = data.results;
+        }
+
+        setUserSkills(skills);
+      } catch (err) {
+        setSkillsError(
+          err instanceof Error
+            ? err.message
+            : "Unable to load your skills.",
+        );
+      } finally {
+        setSkillsLoading(false);
       }
-
-      const data = await response.json();
-
-      let skills: UserSkill[] = [];
-
-      if (Array.isArray(data)) {
-        skills = data;
-      } else if (Array.isArray(data.skills)) {
-        skills = data.skills;
-      } else if (Array.isArray(data.results)) {
-        skills = data.results;
-      }
-
-      setUserSkills(skills);
-    } catch (err) {
-      setSkillsError(
-        err instanceof Error
-          ? err.message
-          : "Unable to load your skills.",
-      );
-    } finally {
-      setSkillsLoading(false);
-    }
-  }, [handleUnauthorized]);
+    }, [handleUnauthorized]);
 
   useEffect(() => {
     fetchOpportunities();
@@ -281,7 +287,10 @@ function Opportunities() {
   }, [fetchOpportunities, fetchUserSkills]);
 
   const userSkillIds = useMemo(
-    () => new Set(userSkills.map((skill) => skill.id)),
+    () =>
+      new Set(
+        userSkills.map((skill) => skill.id),
+      ),
     [userSkills],
   );
 
@@ -294,7 +303,8 @@ function Opportunities() {
       .filter((opportunity) => {
         if (
           typeFilter !== "all" &&
-          opportunity.opportunity_type !== typeFilter
+          opportunity.opportunity_type !==
+            typeFilter
         ) {
           return false;
         }
@@ -348,7 +358,8 @@ function Opportunities() {
   const remoteCount = useMemo(
     () =>
       opportunities.filter(
-        (opportunity) => opportunity.is_remote,
+        (opportunity) =>
+          opportunity.is_remote,
       ).length,
     [opportunities],
   );
@@ -364,14 +375,14 @@ function Opportunities() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-slate-950 dark:text-white">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text-heading)] transition-colors duration-300">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90">
+      <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface-glass)] backdrop-blur-xl transition-colors duration-300">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
-              className="rounded-xl p-2 text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="rounded-xl p-2 text-[var(--text)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--text-heading)]"
               aria-label="Go back"
             >
               <ArrowLeft size={20} />
@@ -381,7 +392,8 @@ function Opportunities() {
               <h1 className="text-xl font-bold sm:text-2xl">
                 Opportunities
               </h1>
-              <p className="text-xs text-slate-500 sm:text-sm dark:text-slate-400">
+
+              <p className="text-xs text-[var(--text)] sm:text-sm">
                 Discover opportunities that match
                 your skills
               </p>
@@ -394,7 +406,7 @@ function Opportunities() {
             <button
               onClick={fetchOpportunities}
               disabled={loading}
-              className="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-2.5 text-[var(--text)] shadow-sm transition hover:bg-[var(--surface-soft)] hover:text-[var(--text-heading)] disabled:cursor-not-allowed disabled:opacity-50"
               title="Refresh opportunities"
             >
               <RefreshCw
@@ -410,23 +422,23 @@ function Opportunities() {
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Hero */}
-        <section className="mb-8 overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
+        <section className="mb-8 overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition-colors duration-300 sm:p-8">
           <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-purple-500/15 bg-purple-500/10 px-3 py-1.5 text-sm font-medium text-purple-600 dark:text-purple-300">
                 <Sparkles size={15} />
                 AI-Powered Opportunity Discovery
               </div>
 
               <h2 className="max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">
                 Find opportunities built
-                <span className="text-indigo-600 dark:text-indigo-400">
+                <span className="text-[var(--primary)]">
                   {" "}
                   for your skills.
                 </span>
               </h2>
 
-              <p className="mt-4 max-w-2xl leading-7 text-slate-600 dark:text-slate-400">
+              <p className="mt-4 max-w-2xl leading-7 text-[var(--text)]">
                 Explore internships, jobs and other
                 opportunities. SkillBridge prioritizes
                 opportunities that match the skills in
@@ -436,7 +448,7 @@ function Opportunities() {
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link
                   to="/skills"
-                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold !text-white shadow-sm transition hover:bg-[var(--primary-hover)]"
                 >
                   <Target size={17} />
                   Manage My Skills
@@ -444,7 +456,7 @@ function Opportunities() {
 
                 <Link
                   to="/resources"
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                  className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-2.5 text-sm font-semibold text-[var(--text-heading)] transition hover:bg-[var(--surface-soft)]"
                 >
                   Learning Resources
                 </Link>
@@ -452,54 +464,62 @@ function Opportunities() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2">
-              <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800">
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors">
                 <Briefcase
                   size={20}
-                  className="mb-3 text-indigo-600 dark:text-indigo-400"
+                  className="mb-3 text-purple-600 dark:text-purple-400"
                 />
+
                 <p className="text-2xl font-bold">
                   {opportunities.length}
                 </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+
+                <p className="text-xs text-[var(--text)]">
                   Opportunities
                 </p>
               </div>
 
-              <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800">
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors">
                 <Target
                   size={20}
                   className="mb-3 text-emerald-600 dark:text-emerald-400"
                 />
+
                 <p className="text-2xl font-bold">
                   {matchedCount}
                 </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+
+                <p className="text-xs text-[var(--text)]">
                   Skill Matches
                 </p>
               </div>
 
-              <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800">
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors">
                 <Building2
                   size={20}
                   className="mb-3 text-blue-600 dark:text-blue-400"
                 />
+
                 <p className="text-2xl font-bold">
                   {internshipCount}
                 </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+
+                <p className="text-xs text-[var(--text)]">
                   Internships
                 </p>
               </div>
 
-              <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800">
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-colors">
                 <MapPin
                   size={20}
                   className="mb-3 text-purple-600 dark:text-purple-400"
                 />
+
                 <p className="text-2xl font-bold">
                   {remoteCount}
                 </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+
+                <p className="text-xs text-[var(--text)]">
                   Remote
                 </p>
               </div>
@@ -508,12 +528,12 @@ function Opportunities() {
         </section>
 
         {/* Search + Filters */}
-        <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
+        <section className="mb-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm transition-colors duration-300 sm:p-5">
           <div className="grid gap-4 lg:grid-cols-[1fr_220px_auto] lg:items-center">
             <div className="relative">
               <Search
                 size={19}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-light)]"
               />
 
               <input
@@ -523,7 +543,7 @@ function Opportunities() {
                   setSearch(event.target.value)
                 }
                 placeholder="Search by title, company, skill or location..."
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] py-3 pl-11 pr-4 text-sm text-[var(--text-heading)] outline-none transition placeholder:text-[var(--text-light)] focus:border-[var(--primary)] focus:ring-2 focus:ring-purple-500/20"
               />
             </div>
 
@@ -532,7 +552,7 @@ function Opportunities() {
               onChange={(event) =>
                 setTypeFilter(event.target.value)
               }
-              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-purple-500/20"
             >
               {opportunityTypeOptions.map(
                 (option) => (
@@ -546,7 +566,7 @@ function Opportunities() {
               )}
             </select>
 
-            <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-700">
+            <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 transition hover:bg-[var(--surface-soft)]">
               <input
                 type="checkbox"
                 checked={remoteOnly}
@@ -555,7 +575,7 @@ function Opportunities() {
                     event.target.checked,
                   )
                 }
-                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                className="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
               />
 
               <span className="text-sm font-medium">
@@ -565,36 +585,37 @@ function Opportunities() {
           </div>
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
-            <p className="text-slate-500 dark:text-slate-400">
+            <p className="text-[var(--text)]">
               Showing{" "}
-              <span className="font-semibold text-slate-800 dark:text-white">
+              <span className="font-semibold text-[var(--text-heading)]">
                 {filteredOpportunities.length}
               </span>{" "}
               of{" "}
-              <span className="font-semibold text-slate-800 dark:text-white">
+              <span className="font-semibold text-[var(--text-heading)]">
                 {opportunities.length}
               </span>{" "}
               opportunities
             </p>
 
-            {!skillsLoading && userSkills.length > 0 && (
-              <p className="text-indigo-600 dark:text-indigo-400">
-                {userSkills.length} skill
-                {userSkills.length !== 1
-                  ? "s"
-                  : ""}{" "}
-                used for matching
-              </p>
-            )}
+            {!skillsLoading &&
+              userSkills.length > 0 && (
+                <p className="text-[var(--primary)]">
+                  {userSkills.length} skill
+                  {userSkills.length !== 1
+                    ? "s"
+                    : ""}{" "}
+                  used for matching
+                </p>
+              )}
           </div>
         </section>
 
         {/* Skill information */}
         {!skillsLoading &&
           userSkills.length > 0 && (
-            <section className="mb-8 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-5 dark:border-indigo-900/50 dark:bg-indigo-950/30">
+            <section className="mb-8 rounded-2xl border border-purple-500/15 bg-purple-500/5 p-5 transition-colors duration-300">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-                <div className="rounded-xl bg-white p-2.5 text-indigo-600 shadow-sm dark:bg-slate-900 dark:text-indigo-400">
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-2.5 text-[var(--primary)] shadow-sm">
                   <Target size={20} />
                 </div>
 
@@ -603,7 +624,7 @@ function Opportunities() {
                     Your matching skills
                   </h3>
 
-                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                  <p className="mt-1 text-sm text-[var(--text)]">
                     Opportunities matching these
                     skills are prioritized.
                   </p>
@@ -612,7 +633,7 @@ function Opportunities() {
                     {userSkills.map((skill) => (
                       <span
                         key={skill.id}
-                        className="rounded-full bg-white px-3 py-1.5 text-xs font-medium text-indigo-700 shadow-sm dark:bg-slate-900 dark:text-indigo-300"
+                        className="rounded-full border border-purple-500/10 bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--primary)] shadow-sm"
                       >
                         {skill.name}
                       </span>
@@ -623,20 +644,23 @@ function Opportunities() {
             </section>
           )}
 
+        {/* Skills error */}
         {skillsError && (
-          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
+          <div className="mb-6 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
             {skillsError}
           </div>
         )}
 
         {/* Error */}
         {error && (
-          <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm">{error}</p>
+          <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 p-5 text-red-700 dark:text-red-300 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm">
+              {error}
+            </p>
 
             <button
               onClick={fetchOpportunities}
-              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
             >
               Try Again
             </button>
@@ -649,29 +673,31 @@ function Opportunities() {
             {[1, 2, 3, 4].map((item) => (
               <div
                 key={item}
-                className="animate-pulse rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900"
+                className="animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6"
               >
                 <div className="mb-5 flex justify-between gap-4">
-                  <div className="h-10 w-10 rounded-xl bg-slate-200 dark:bg-slate-800" />
-                  <div className="h-7 w-24 rounded-full bg-slate-200 dark:bg-slate-800" />
+                  <div className="h-10 w-10 rounded-xl bg-[var(--surface-soft)]" />
+
+                  <div className="h-7 w-24 rounded-full bg-[var(--surface-soft)]" />
                 </div>
 
-                <div className="h-6 w-3/4 rounded bg-slate-200 dark:bg-slate-800" />
-                <div className="mt-3 h-4 w-1/2 rounded bg-slate-200 dark:bg-slate-800" />
+                <div className="h-6 w-3/4 rounded bg-[var(--surface-soft)]" />
+
+                <div className="mt-3 h-4 w-1/2 rounded bg-[var(--surface-soft)]" />
 
                 <div className="mt-5 space-y-2">
-                  <div className="h-4 w-full rounded bg-slate-200 dark:bg-slate-800" />
-                  <div className="h-4 w-5/6 rounded bg-slate-200 dark:bg-slate-800" />
+                  <div className="h-4 w-full rounded bg-[var(--surface-soft)]" />
+                  <div className="h-4 w-5/6 rounded bg-[var(--surface-soft)]" />
                 </div>
 
-                <div className="mt-6 h-10 w-full rounded-xl bg-slate-200 dark:bg-slate-800" />
+                <div className="mt-6 h-10 w-full rounded-xl bg-[var(--surface-soft)]" />
               </div>
             ))}
           </div>
         ) : filteredOpportunities.length === 0 ? (
           /* Empty state */
-          <section className="rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center dark:border-slate-700 dark:bg-slate-900">
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+          <section className="rounded-3xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-16 text-center transition-colors duration-300">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--surface-soft)] text-[var(--text)]">
               <Briefcase size={30} />
             </div>
 
@@ -679,7 +705,7 @@ function Opportunities() {
               No opportunities found
             </h3>
 
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500 dark:text-slate-400">
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--text)]">
               Try changing your search or filters.
               New opportunities can also be added
               through the backend.
@@ -694,7 +720,7 @@ function Opportunities() {
                   setTypeFilter("all");
                   setRemoteOnly(false);
                 }}
-                className="mt-5 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
+                className="mt-5 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
               >
                 Clear Filters
               </button>
@@ -708,7 +734,8 @@ function Opportunities() {
                 <h2 className="text-2xl font-bold">
                   Explore Opportunities
                 </h2>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+
+                <p className="mt-1 text-sm text-[var(--text)]">
                   Best skill matches appear first.
                 </p>
               </div>
@@ -730,12 +757,12 @@ function Opportunities() {
                   return (
                     <article
                       key={opportunity.id}
-                      className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900"
+                      className="group flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg"
                     >
                       {/* Card top */}
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex min-w-0 items-center gap-3">
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-500/10 text-[var(--primary)]">
                             <Briefcase size={21} />
                           </div>
 
@@ -744,7 +771,7 @@ function Opportunities() {
                               {opportunity.title}
                             </h3>
 
-                            <p className="mt-0.5 flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
+                            <p className="mt-0.5 flex items-center gap-1.5 text-sm text-[var(--text)]">
                               <Building2 size={14} />
                               {opportunity.company}
                             </p>
@@ -765,53 +792,53 @@ function Opportunities() {
 
                       {/* Badges */}
                       <div className="mt-5 flex flex-wrap gap-2">
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        <span className="rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1 text-xs font-medium text-[var(--text)]">
                           {opportunity.opportunity_type_display ||
                             opportunity.opportunity_type}
                         </span>
 
                         {opportunity.is_remote && (
-                          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                          <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
                             Remote
                           </span>
                         )}
 
                         {opportunity.skill_name && (
-                          <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
+                          <span className="rounded-full bg-purple-500/10 px-3 py-1 text-xs font-medium text-[var(--primary)]">
                             {opportunity.skill_name}
                           </span>
                         )}
 
                         {hasSkillMatch && (
-                          <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                          <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-300">
                             Your Skill
                           </span>
                         )}
                       </div>
 
                       {/* Description */}
-                      <p className="mt-5 line-clamp-3 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                      <p className="mt-5 line-clamp-3 text-sm leading-6 text-[var(--text)]">
                         {opportunity.description ||
                           "Explore this opportunity and see whether it matches your career goals."}
                       </p>
 
                       {/* Match reason */}
                       {opportunity.match_reason && (
-                        <div className="mt-5 rounded-xl border border-indigo-100 bg-indigo-50/70 p-4 dark:border-indigo-900/50 dark:bg-indigo-950/30">
+                        <div className="mt-5 rounded-xl border border-purple-500/15 bg-purple-500/5 p-4">
                           <div className="flex gap-3">
                             <Sparkles
                               size={18}
-                              className="mt-0.5 shrink-0 text-indigo-600 dark:text-indigo-400"
+                              className="mt-0.5 shrink-0 text-[var(--primary)]"
                             />
 
                             <div>
-                              <p className="text-xs font-bold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">
+                              <p className="text-xs font-bold uppercase tracking-wide text-[var(--primary)]">
                                 {getMatchLabel(
                                   opportunity.match_score,
                                 )}
                               </p>
 
-                              <p className="mt-1 text-sm leading-5 text-slate-600 dark:text-slate-400">
+                              <p className="mt-1 text-sm leading-5 text-[var(--text)]">
                                 {
                                   opportunity.match_reason
                                 }
@@ -822,19 +849,19 @@ function Opportunities() {
                       )}
 
                       {/* Meta */}
-                      <div className="mt-5 space-y-2.5 border-t border-slate-100 pt-5 dark:border-slate-800">
-                        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                      <div className="mt-5 space-y-2.5 border-t border-[var(--border)] pt-5">
+                        <div className="flex items-center gap-2 text-sm text-[var(--text)]">
                           <MapPin size={16} />
+
                           <span>
                             {opportunity.location ||
                               "Location not specified"}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                          <CalendarDays
-                            size={16}
-                          />
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-[var(--text)]">
+                          <CalendarDays size={16} />
+
                           <span>
                             Deadline:{" "}
                             {formatDeadline(
@@ -868,9 +895,10 @@ function Opportunities() {
                           href={opportunity.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
                         >
                           View Opportunity
+
                           <ExternalLink
                             size={16}
                           />
@@ -885,12 +913,13 @@ function Opportunities() {
         )}
 
         {/* Bottom CTA */}
-        <section className="mt-10 rounded-3xl bg-indigo-600 p-6 text-white shadow-lg sm:p-8">
+        <section className="mt-10 rounded-3xl bg-[var(--primary)] p-6 text-white shadow-lg transition-colors duration-300 sm:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div className="mb-2 flex items-center gap-2">
                 <Sparkles size={20} />
-                <span className="text-sm font-semibold text-indigo-100">
+
+                <span className="text-sm font-semibold text-purple-100">
                   Keep growing with SkillBridge
                 </span>
               </div>
@@ -899,24 +928,24 @@ function Opportunities() {
                 Don't see the right opportunity yet?
               </h2>
 
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-indigo-100">
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-purple-100">
                 Improve your skills and keep your profile
                 updated. Better skills mean better
                 opportunity matches.
               </p>
             </div>
 
-<div className="flex shrink-0 flex-wrap gap-3">
+            <div className="flex shrink-0 flex-wrap gap-3">
               <Link
                 to="/skills"
-    className="rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
+                className="rounded-xl bg-black px-5 py-3 text-sm font-semibold text-[var(--primary)] transition hover:bg-slate-100"
               >
                 Improve Skills
               </Link>
 
               <Link
                 to="/resources"
-                className="rounded-xl border border-indigo-400 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500"
+                className="rounded-xl border border-purple-300 px-5 py-3 text-sm font-semibold text-white transition hover:bg-purple-700/40"
               >
                 Learn More
               </Link>
@@ -924,6 +953,27 @@ function Opportunities() {
           </div>
         </section>
       </main>
+      
+      {/* =========================
+          Footer
+      ========================== */}
+      <footer className="mt-6 border-t border-slate-200 bg-white dark:border-[var(--border)] dark:bg-[var(--surface)]">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-8 text-center sm:flex-row sm:px-6 lg:px-8">
+          <div>
+            <p className="text-sm font-bold text-[var(--text-heading)]">
+              Skill<span className="text-[var(--primary)]">Bridge</span>
+            </p>
+
+            <p className="mt-1 text-xs">
+              Keep learning, keep growing.
+            </p>
+          </div>
+
+          <p className="text-xs font-medium">
+            © {new Date().getFullYear()} SkillBridge. All rights reserved.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -265,6 +265,10 @@ function App() {
     closeMenu();
     navigate("/skills");
   };
+  const handleOpportunities = () => {
+  closeMenu();
+  navigate("/opportunities");
+};
 
   const topCareer = recommendations[0];
   const dynamicProgress = topCareer?.matchPercentage ?? 0;
@@ -1288,10 +1292,10 @@ function App() {
 
                 <button
                   type="button"
-                  onClick={handleLogin}
+                  onClick={handleOpportunities}
                   className="footer-nav-item"
                 >
-                  Log in
+                Opportunities
                   <ArrowRight className="h-3.5 w-3.5" />
                 </button>
 

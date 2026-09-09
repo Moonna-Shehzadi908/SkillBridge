@@ -2077,8 +2077,8 @@ export default function Career() {
               Skills
             </Link>
 
-            <Link to="/career" className="nav-link">
-              Career
+            <Link to="/Dashboard" className="nav-link">
+              Dashboard
             </Link>
 
             <ThemeToggle />
@@ -3324,25 +3324,25 @@ export default function Career() {
       </main>
 
       {/* Footer */}
-      <footer className="footer">
-        <div className="career-container">
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 15,
-              flexWrap: "wrap",
-            }}
-          >
-            <span>
-              © {new Date().getFullYear()} SkillBridge
-            </span>
+      
+      {/* =========================
+          Footer
+      ========================== */}
+      <footer className="mt-6 border-t border-slate-200 bg-white dark:border-[var(--border)] dark:bg-[var(--surface)]">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-8 text-center sm:flex-row sm:px-6 lg:px-8">
+          <div>
+            <p className="text-sm font-bold text-[var(--text-heading)]">
+              Skill<span className="text-[var(--primary)]">Bridge</span>
+            </p>
 
-            <span>
-              Build skills. Discover careers. Grow with
-              confidence.
-            </span>
+            <p className="mt-1 text-xs">
+              Keep learning, keep growing.
+            </p>
           </div>
+
+          <p className="text-xs font-medium">
+            © {new Date().getFullYear()} SkillBridge. All rights reserved.
+          </p>
         </div>
       </footer>
     </div>

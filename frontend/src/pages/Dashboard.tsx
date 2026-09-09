@@ -2691,21 +2691,26 @@ function Dashboard() {
           FOOTER
       ====================================================== */}
 
-      <footer className="mt-14 border-t border-[var(--border)] bg-[var(--surface)]">
+      {/* =========================
+          Footer
+      ========================== */}
+      <footer className="mt-6 border-t border-slate-200 bg-white dark:border-[var(--border)] dark:bg-[var(--surface)]">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-8 text-center sm:flex-row sm:px-6 lg:px-8">
+          <div>
+            <p className="text-sm font-bold text-[var(--text-heading)]">
+              Skill<span className="text-[var(--primary)]">Bridge</span>
+            </p>
 
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-7 text-center text-xs sm:flex-row sm:px-6 lg:px-8 sm:text-left">
+            <p className="mt-1 text-xs">
+              Keep learning, keep growing.
+            </p>
+          </div>
 
-          <p className="font-bold text-[var(--text-heading)]">
-            © {new Date().getFullYear()} SkillBridge
+          <p className="text-xs font-medium">
+            © {new Date().getFullYear()} SkillBridge. All rights reserved.
           </p>
-
-          <p className="opacity-50">
-            Keep learning. Keep growing. Keep building your future.
-          </p>
-
         </div>
       </footer>
-
     </div>
   );
 }
