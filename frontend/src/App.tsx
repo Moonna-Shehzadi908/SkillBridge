@@ -9,6 +9,7 @@ import Resources from "./pages/Resources";
 import CareerPage from "./pages/Career";
 import SkillGap from "./pages/SkillGap";
 import Opportunities from "./pages/Opportunities";
+import Chatbot from "./components/Chatbot";
 function App() {
   return (
     <BrowserRouter>
@@ -23,6 +24,8 @@ function App() {
         <Route path="/skill-gap" element={<SkillGap />} />
         <Route path="/opportunities" element={<Opportunities />} />
       </Routes>
+
+      <Chatbot />
     </BrowserRouter>
   );
 }
