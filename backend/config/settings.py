@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "apps.career.apps.CareerConfig",
     "apps.opportunities.apps.OpportunitiesConfig",
     "apps.chatbot.apps.ChatbotConfig",
+    "apps.mock_interview",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

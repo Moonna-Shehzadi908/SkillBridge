@@ -3,7 +3,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import include, path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-
+from django.urls import include, path
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -17,6 +17,10 @@ urlpatterns = [
     path("api/chatbot/", include("apps.chatbot.urls")),
     path("api/career/", include("apps.career.urls")),
     path("api/opportunities/", include("apps.opportunities.urls")),
+    path(
+        "api/mock-interviews/",
+        include("apps.mock_interview.urls"),
+    ),
 ]
 
 urlpatterns += static(
