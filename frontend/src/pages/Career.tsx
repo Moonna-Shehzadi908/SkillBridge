@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -80,7 +79,6 @@ const getMatchLabel = (score: number) => {
   return "No Match";
 };
 
-/* FIX: Added missing score class helper */
 const getScoreClass = (score: number) => {
   if (score >= 80) return "score-excellent";
   if (score >= 60) return "score-strong";
@@ -99,7 +97,6 @@ const getDemandLabel = (level: Career["demand_level"]) => {
   }
 };
 
-/* FIX: Added missing demand ranking helper */
 const getDemandRank = (level: Career["demand_level"]) => {
   switch (level) {
     case "HIGH":
@@ -179,10 +176,10 @@ export default function Career() {
   const [mySkills, setMySkills] = useState<UserSkill[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
 
-  // Local discovery controls — no backend changes required.
   const [careerSearch, setCareerSearch] = useState("");
   const [demandFilter, setDemandFilter] =
     useState<"ALL" | Career["demand_level"]>("ALL");
+
   const [careerSort, setCareerSort] =
     useState<"title" | "demand">("title");
 
@@ -398,6 +395,12 @@ export default function Career() {
       .slice(0, 3);
   };
 
+  /*
+   * The strongest AI career match is used for:
+   * - Personalized Learning Roadmap
+   * - Skill Gap
+   * - Mock Interview
+   */
   const roadmapCareer = aiResults[0] ?? null;
 
   const roadmapGap = useMemo(() => {
@@ -495,8 +498,12 @@ export default function Career() {
       .filter((career) => {
         const matchesSearch =
           !query ||
-          career.title.toLowerCase().includes(query) ||
-          career.description.toLowerCase().includes(query) ||
+          career.title
+            .toLowerCase()
+            .includes(query) ||
+          career.description
+            .toLowerCase()
+            .includes(query) ||
           career.required_skills.some((skill) =>
             skill.toLowerCase().includes(query)
           );
@@ -517,7 +524,12 @@ export default function Career() {
 
         return a.title.localeCompare(b.title);
       });
-  }, [careers, careerSearch, demandFilter, careerSort]);
+  }, [
+    careers,
+    careerSearch,
+    demandFilter,
+    careerSort,
+  ]);
 
   const averageMatch = useMemo(() => {
     if (!aiResults.length) return 0;
@@ -706,6 +718,50 @@ export default function Career() {
           color: var(--primary);
         }
 
+        /*
+         * Mock Interview action
+         */
+        .mock-test-button {
+          color: var(--primary);
+          background: var(--surface);
+          border: 1px solid color-mix(
+            in srgb,
+            var(--primary) 30%,
+            var(--border)
+          );
+          border-radius: 13px;
+          padding: 13px 18px;
+          font-weight: 800;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 9px;
+          text-decoration: none;
+          transition: 0.2s ease;
+          box-shadow: 0 8px 22px rgba(99, 102, 241, 0.07);
+        }
+
+        .mock-test-button:hover {
+          color: white;
+          background: linear-gradient(135deg, var(--primary), #7c3aed);
+          border-color: var(--primary);
+          transform: translateY(-2px);
+          box-shadow: 0 12px 28px rgba(99, 102, 241, 0.18);
+        }
+
+        .mock-test-button.disabled-state {
+          color: var(--text);
+          opacity: 0.78;
+        }
+
+        .mock-test-button.disabled-state:hover {
+          color: var(--primary);
+          background: var(--surface);
+          transform: none;
+          box-shadow: none;
+        }
+
         .hero-visual {
           position: relative;
           min-height: 320px;
@@ -713,7 +769,11 @@ export default function Career() {
           border-radius: 30px;
           padding: 25px;
           background:
-            linear-gradient(145deg, color-mix(in srgb, var(--surface) 95%, transparent), color-mix(in srgb, var(--primary-soft) 55%, var(--surface)));
+            linear-gradient(
+              145deg,
+              color-mix(in srgb, var(--surface) 95%, transparent),
+              color-mix(in srgb, var(--primary-soft) 55%, var(--surface))
+            );
           box-shadow: 0 25px 70px rgba(15, 23, 42, 0.08);
           overflow: hidden;
         }
@@ -1407,6 +1467,10 @@ export default function Career() {
           gap: 5px;
         }
 
+        .gap-action:hover {
+          text-decoration: underline;
+        }
+
         .empty-state,
         .error-state {
           padding: 35px 20px;
@@ -1465,10 +1529,6 @@ export default function Career() {
           animation: shimmer 1.5s infinite;
           border: 1px solid var(--border);
         }
-
-        /* =========================
-           Learning Roadmap
-        ========================= */
 
         .roadmap-section {
           margin-top: 42px;
@@ -1922,6 +1982,9 @@ export default function Career() {
           border-radius: 12px;
           font-weight: 900;
           white-space: nowrap;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .footer {
@@ -2059,6 +2122,16 @@ export default function Career() {
             width: 100%;
             margin-left: 47px;
           }
+
+          .hero-actions {
+            width: 100%;
+          }
+
+          .hero-actions .primary-button,
+          .hero-actions .mock-test-button {
+            flex: 1 1 100%;
+            width: 100%;
+          }
         }
       `}</style>
 
@@ -2073,11 +2146,17 @@ export default function Career() {
           </Link>
 
           <div className="nav-actions">
-            <Link to="/skills" className="nav-link">
+            <Link
+              to="/skills"
+              className="nav-link"
+            >
               Skills
             </Link>
 
-            <Link to="/Dashboard" className="nav-link">
+            <Link
+              to="/Dashboard"
+              className="nav-link"
+            >
               Dashboard
             </Link>
 
@@ -2112,6 +2191,7 @@ export default function Career() {
               </p>
 
               <div className="hero-actions">
+                {/* Career Match */}
                 <button
                   type="button"
                   className="primary-button"
@@ -2136,13 +2216,34 @@ export default function Career() {
                   )}
                 </button>
 
-                <Link
-                  to="/skills"
-                  className="secondary-button"
-                >
-                  Manage My Skills
-                  <ArrowRight size={16} />
-                </Link>
+                {/* Mock Interview / Mock Test */}
+                {roadmapCareer ? (
+                  <Link
+                    to="/mock-interview"
+                    state={{
+                      career: roadmapCareer,
+                    }}
+                    className="mock-test-button"
+                  >
+                    <BrainCircuit size={16} />
+                    Take Mock Test
+                    <ArrowRight size={15} />
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    className="mock-test-button disabled-state"
+                    onClick={runAICareerMatch}
+                    disabled={aiLoading}
+                    title="Run Career Match first to get a personalized mock interview"
+                  >
+                    <BrainCircuit size={16} />
+                    {aiLoading
+                      ? "Preparing..."
+                      : "Run Career Match First"}
+                    <ArrowRight size={15} />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -2347,7 +2448,6 @@ export default function Career() {
                 )}
               </div>
 
-              {/* FIX: Wrapped sibling JSX elements in Fragment */}
               {aiHasRun && !aiError && (
                 <>
                   <div className="ai-summary">
@@ -2355,6 +2455,7 @@ export default function Career() {
                       <strong>
                         {aiResults.length}
                       </strong>
+
                       <span>
                         Career matches found
                       </span>
@@ -2364,6 +2465,7 @@ export default function Career() {
                       <strong>
                         {mySkills.length}
                       </strong>
+
                       <span>
                         Your saved skills analyzed
                       </span>
@@ -2373,6 +2475,7 @@ export default function Career() {
                       <strong>
                         {averageMatch}%
                       </strong>
+
                       <span>
                         Average match across results
                       </span>
@@ -2531,7 +2634,6 @@ export default function Career() {
                             />
                           </div>
 
-                          {/* Matched Skills */}
                           <div className="skills-group">
                             <div className="skills-group-title matched">
                               <CheckCircle2 size={14} />
@@ -2563,7 +2665,6 @@ export default function Career() {
                             )}
                           </div>
 
-                          {/* Missing Skills */}
                           <div className="skills-group">
                             <div className="skills-group-title missing">
                               <AlertCircle size={14} />
@@ -2638,7 +2739,7 @@ export default function Career() {
                           </div>
 
                           <div className="card-footer">
-                            <Link 
+                            <Link
                               to="/skills"
                               className="gap-action"
                             >
@@ -2715,9 +2816,7 @@ export default function Career() {
                 </div>
               )}
 
-            {/* =========================================
-                PERSONALIZED LEARNING ROADMAP
-            ========================================= */}
+            {/* Personalized Learning Roadmap */}
             {aiHasRun &&
               !aiError &&
               roadmapCareer && (
@@ -2749,7 +2848,6 @@ export default function Career() {
                       </div>
                     </div>
 
-                    {/* Roadmap Progress */}
                     <div className="roadmap-progress">
                       <div>
                         <div className="roadmap-progress-label">
@@ -3018,78 +3116,80 @@ export default function Career() {
                 </p>
               </div>
 
-              {!loading && !error && careers.length > 0 && (
-                <div
-                  className="career-controls"
-                  aria-label="Career filters"
-                >
-                  <label className="career-search">
-                    <Target size={16} />
+              {!loading &&
+                !error &&
+                careers.length > 0 && (
+                  <div
+                    className="career-controls"
+                    aria-label="Career filters"
+                  >
+                    <label className="career-search">
+                      <Target size={16} />
 
-                    <input
-                      type="search"
-                      value={careerSearch}
+                      <input
+                        type="search"
+                        value={careerSearch}
+                        onChange={(event) =>
+                          setCareerSearch(
+                            event.target.value
+                          )
+                        }
+                        placeholder="Search careers or skills..."
+                        aria-label="Search careers or skills"
+                      />
+                    </label>
+
+                    <select
+                      value={demandFilter}
                       onChange={(event) =>
-                        setCareerSearch(
-                          event.target.value
+                        setDemandFilter(
+                          event.target.value as
+                            | "ALL"
+                            | Career["demand_level"]
                         )
                       }
-                      placeholder="Search careers or skills..."
-                      aria-label="Search careers or skills"
-                    />
-                  </label>
+                      aria-label="Filter careers by demand"
+                      className="career-select"
+                    >
+                      <option value="ALL">
+                        All demand
+                      </option>
 
-                  <select
-                    value={demandFilter}
-                    onChange={(event) =>
-                      setDemandFilter(
-                        event.target.value as
-                          | "ALL"
-                          | Career["demand_level"]
-                      )
-                    }
-                    aria-label="Filter careers by demand"
-                    className="career-select"
-                  >
-                    <option value="ALL">
-                      All demand
-                    </option>
+                      <option value="HIGH">
+                        High demand
+                      </option>
 
-                    <option value="HIGH">
-                      High demand
-                    </option>
+                      <option value="MEDIUM">
+                        Medium demand
+                      </option>
 
-                    <option value="MEDIUM">
-                      Medium demand
-                    </option>
+                      <option value="LOW">
+                        Growing fields
+                      </option>
+                    </select>
 
-                    <option value="LOW">
-                      Growing fields
-                    </option>
-                  </select>
+                    <select
+                      value={careerSort}
+                      onChange={(event) =>
+                        setCareerSort(
+                          event.target.value as
+                            | "title"
+                            | "demand"
+                        )
+                      }
+                      aria-label="Sort career paths"
+                      className="career-select"
+                    >
+                      <option value="title">
+                        A–Z
+                      </option>
 
-                  <select
-                    value={careerSort}
-                    onChange={(event) =>
-                      setCareerSort(
-                        event.target.value as
-                          | "title"
-                          | "demand"
-                      )
-                    }
-                    aria-label="Sort career paths"
-                    className="career-select"
-                  >
-                    <option value="title">
-                      A–Z
-                    </option>
-
-                    <option value="demand">
-                      Demand first
-                    </option>
-                  </select>
-                </div>
-              )}
+                      <option value="demand">
+                        Demand first
+                      </option>
+                    </select>
+                  </div>
+                )}
             </div>
 
             {loading ? (
@@ -3304,35 +3404,36 @@ export default function Career() {
               </p>
             </div>
 
-           <Link
-  to="/skill-gap"
-  state={{ career: roadmapCareer }}
-  className="cta-button"
->
-  <span>Improve My Skills</span>
+            <Link
+              to="/skill-gap"
+              state={{
+                career: roadmapCareer,
+              }}
+              className="cta-button"
+            >
+              <span>Improve My Skills</span>
 
-  <ArrowRight
-    size={15}
-    style={{
-      marginLeft: 5,
-      flexShrink: 0,
-    }}
-  />
-</Link>
+              <ArrowRight
+                size={15}
+                style={{
+                  marginLeft: 5,
+                  flexShrink: 0,
+                }}
+              />
+            </Link>
           </div>
         </section>
       </main>
 
       {/* Footer */}
-      
-      {/* =========================
-          Footer
-      ========================== */}
       <footer className="mt-6 border-t border-slate-200 bg-white dark:border-[var(--border)] dark:bg-[var(--surface)]">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-8 text-center sm:flex-row sm:px-6 lg:px-8">
           <div>
             <p className="text-sm font-bold text-[var(--text-heading)]">
-              Skill<span className="text-[var(--primary)]">Bridge</span>
+              Skill
+              <span className="text-[var(--primary)]">
+                Bridge
+              </span>
             </p>
 
             <p className="mt-1 text-xs">
