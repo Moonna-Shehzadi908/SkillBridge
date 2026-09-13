@@ -452,7 +452,7 @@ Examples:
 ```text
 GET /api/career/
 
-```
+
 ```text
 
 GET /api/opportunities/
