@@ -377,7 +377,6 @@ The system stores:
 
 The main endpoint is:
 
-```text
 /api/mock-interviews/
 
 # 📁 Project Structure
