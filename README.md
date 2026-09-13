@@ -285,6 +285,101 @@ Key UI features include:
 * Dynamic data presentation
 
 ---
+---
+
+# 🚀 Module 3 — Career Opportunities & Mock Test / Interview
+
+Module 3 focuses on extending SkillBridge from career discovery to practical career preparation. This module introduces dynamic career opportunities and a career-specific Mock Test / Mock Interview feature to help learners discover relevant opportunities and prepare for career-related assessments.
+
+## ✅ Module 3 Completed Work
+
+### 1. Career Opportunities
+
+A dedicated Opportunities module was implemented to help learners discover relevant career opportunities.
+
+Users can now:
+
+* View career opportunities dynamically.
+* Search available opportunities.
+* Filter opportunities by type.
+* Filter opportunities by remote availability.
+* View opportunity details.
+* Identify opportunities relevant to their skills.
+* View opportunity match scores.
+
+Supported opportunity types include:
+
+* Internships
+* Jobs
+* Freelance
+* Scholarships
+* Other opportunities
+
+### 2. Skill-Based Opportunity Matching
+
+The Opportunities module is connected with the user's skill profile to provide more relevant career opportunities.
+
+The matching experience includes:
+
+* User skill comparison.
+* Skill-based opportunity matching.
+* Match score presentation.
+* Search functionality.
+* Opportunity type filtering.
+* Remote-only filtering.
+
+This helps learners focus on opportunities that are more relevant to their current skills and career goals.
+
+### 3. Mock Test / Mock Interview
+
+A career-specific **Mock Test / Mock Interview** feature was implemented to help learners prepare for career-related interviews and assessments.
+
+Users can now:
+
+* Select a career for practice.
+* Start a career-specific mock test.
+* Receive dynamically generated questions.
+* Answer questions related to the selected career.
+* Submit answers for evaluation.
+* Receive scores and feedback.
+* Track interview completion.
+
+### 4. Career-Specific Question Generation
+
+Mock interview questions are generated according to the skills required for the selected career.
+
+The system generates questions covering areas such as:
+
+* Skill knowledge
+* Practical skill usage
+* Important concepts
+* Common challenges
+* Knowledge improvement
+
+For example, if a selected career requires JavaScript, the mock test can generate questions related to JavaScript concepts, practical usage, challenges, and improvement areas.
+
+### 5. Mock Interview Backend Integration
+
+A dedicated Mock Interview backend module was implemented using Django REST Framework.
+
+The system stores:
+
+* User
+* Selected career
+* Interview score
+* Total questions
+* Completion status
+* Interview creation date
+* Interview questions
+* Expected answers
+* User answers
+* Question scores
+* Feedback
+
+The main endpoint is:
+
+```text
+/api/mock-interviews/
 
 # 📁 Project Structure
 
@@ -296,7 +391,10 @@ SkillBridge/
 │   │   ├── accounts/
 │   │   ├── skills/
 │   │   ├── resources/
-│   │   └── career/
+│   │   ├── career/
+│   │   ├── opportunities/
+│   │   └── mock_interviews/
+│   │
 │   ├── config/
 │   ├── manage.py
 │   └── ...
@@ -307,12 +405,12 @@ SkillBridge/
 │   │   ├── pages/
 │   │   ├── assets/
 │   │   └── ...
+│   │
 │   ├── package.json
 │   └── ...
 │
 ├── .gitignore
 └── README.md
-```
 
 ---
 
@@ -335,9 +433,13 @@ DELETE /api/accounts/me/skills/{skillId}/
 ```text
 GET /api/resources/
 GET /api/resources/recommendations/
-```
-
 Resources also support filtering and searching through query parameters.
+
+```
+```text
+
+GET /api/opportunities/
+
 
 Examples:
 
@@ -351,7 +453,12 @@ Examples:
 
 ```text
 GET /api/career/
+
 ```
+```text
+
+GET  /api/mock-interviews/
+POST /api/mock-interviews/
 
 Authenticated requests use JWT Bearer authentication.
 
