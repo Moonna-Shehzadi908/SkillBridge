@@ -447,18 +447,12 @@ Examples:
 /api/resources/?resource_type=video
 ```
 
-### Career
+### Career & Opportunities
 
 ```text
 GET /api/career/
-
-
-```text
-
 GET /api/opportunities/
-```text
-
-GET  /api/mock-interviews/
+GET /api/mock-interviews/
 POST /api/mock-interviews/
 
 Authenticated requests use JWT Bearer authentication.
