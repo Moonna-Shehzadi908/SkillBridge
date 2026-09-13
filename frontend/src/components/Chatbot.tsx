@@ -124,7 +124,7 @@ function Chatbot() {
       setLoading(false);
     }
   };
-
+// everything below is the new code added to the Chatbot component
   const clearChat = async () => {
     if (!conversation || !token) return;
 
