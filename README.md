@@ -436,9 +436,7 @@ GET /api/resources/recommendations/
 Resources also support filtering and searching through query parameters.
 
 ```
-```text
 
-GET /api/opportunities/
 
 
 Examples:
@@ -455,6 +453,9 @@ Examples:
 GET /api/career/
 
 ```
+```text
+
+GET /api/opportunities/
 ```text
 
 GET  /api/mock-interviews/
@@ -568,7 +569,11 @@ Module 1 established the project foundation, authentication, user profile functi
 **Status: Completed ✅**
 
 Module 2 introduced dynamic backend-driven functionality, personalized skill recommendations, recommended learning resources, and skill-based career matching.
+Module 3
 
+Status: Completed ✅
+
+Career opportunities, skill-based opportunity matching, Mock Test / Mock Interview, question generation, scoring, and feedback.
 ---
 
 # 👩‍💻 Internship Information
