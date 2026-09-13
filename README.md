@@ -239,7 +239,6 @@ Authenticated endpoints use JWT Bearer authentication.
 
 Example:
 
-```text
 Authorization: Bearer <access_token>
 ```
 
