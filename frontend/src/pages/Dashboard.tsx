@@ -1,5 +1,4 @@
-
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ThemeToggle from "../components/ThemeToggle";
@@ -25,11 +24,6 @@ interface User {
   skills?: Skill[];
 }
 
-/*
- * Career API is intentionally flexible here.
- * This prevents Dashboard from breaking if your backend
- * returns slightly different field names.
- */
 interface CareerRecommendation {
   id?: number;
   title?: string;
@@ -57,12 +51,26 @@ interface CareerApiState {
   recommendations: CareerRecommendation[];
 }
 
+interface CropSettings {
+  zoom: number;
+  offsetX: number;
+  offsetY: number;
+}
+
 function Dashboard() {
   const navigate = useNavigate();
+
+  /* =========================================================
+     USER
+  ========================================================= */
 
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  /* =========================================================
+     PROFILE EDIT
+  ========================================================= */
 
   const [editMode, setEditMode] = useState(false);
   const [logoutMessage, setLogoutMessage] = useState("");
@@ -81,11 +89,30 @@ function Dashboard() {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
 
+  /* =========================================================
+     IMAGE CROP
+  ========================================================= */
+
+  const [cropOpen, setCropOpen] = useState(false);
+  const [cropImage, setCropImage] = useState<string | null>(null);
+
+  const [cropSettings, setCropSettings] = useState<CropSettings>({
+    zoom: 1,
+    offsetX: 0,
+    offsetY: 0,
+  });
+
+  const cropCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
   /*
-   * =========================================================
-   * DYNAMIC CAREER INTELLIGENCE
-   * =========================================================
+   * Keeps track of temporary object URLs created for
+   * image processing so they can be revoked safely.
    */
+  const cropObjectUrlRef = useRef<string | null>(null);
+
+  /* =========================================================
+     CAREER
+  ========================================================= */
 
   const [careerData, setCareerData] = useState<CareerApiState>({
     loading: true,
@@ -93,11 +120,14 @@ function Dashboard() {
     recommendations: [],
   });
 
-  /*
-   * =========================================================
-   * FETCH USER
-   * =========================================================
-   */
+  const [selectedCareer, setSelectedCareer] =
+    useState<CareerRecommendation | null>(null);
+
+  const [careerSelectorOpen, setCareerSelectorOpen] = useState(false);
+
+  /* =========================================================
+     FETCH USER
+  ========================================================= */
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -152,11 +182,9 @@ function Dashboard() {
     fetchUser();
   }, [navigate]);
 
-  /*
-   * =========================================================
-   * FETCH REAL CAREER RECOMMENDATIONS
-   * =========================================================
-   */
+  /* =========================================================
+     FETCH CAREER RECOMMENDATIONS
+  ========================================================= */
 
   useEffect(() => {
     const fetchCareerRecommendations = async () => {
@@ -204,22 +232,6 @@ function Dashboard() {
 
         const data = await response.json();
 
-        /*
-         * Supports common DRF response formats:
-         *
-         * [
-         *   {...}
-         * ]
-         *
-         * {
-         *   recommendations: [...]
-         * }
-         *
-         * {
-         *   results: [...]
-         * }
-         */
-
         let recommendations: CareerRecommendation[] = [];
 
         if (Array.isArray(data)) {
@@ -238,11 +250,6 @@ function Dashboard() {
           recommendations,
         });
       } catch (err) {
-        /*
-         * Dashboard must remain functional even if Career API
-         * is unavailable.
-         */
-
         setCareerData({
           loading: false,
           error:
@@ -257,11 +264,23 @@ function Dashboard() {
     fetchCareerRecommendations();
   }, [navigate, user?.id]);
 
-  /*
-   * =========================================================
-   * LOGOUT
-   * =========================================================
-   */
+  /* =========================================================
+     DEFAULT CAREER
+  ========================================================= */
+
+  const topCareer = useMemo(() => {
+    return careerData.recommendations[0] || null;
+  }, [careerData.recommendations]);
+
+  useEffect(() => {
+    if (!selectedCareer && topCareer) {
+      setSelectedCareer(topCareer);
+    }
+  }, [topCareer, selectedCareer]);
+
+  /* =========================================================
+     LOGOUT
+  ========================================================= */
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
@@ -274,11 +293,9 @@ function Dashboard() {
     }, 1000);
   };
 
-  /*
-   * =========================================================
-   * EDIT INPUT
-   * =========================================================
-   */
+  /* =========================================================
+     EDIT INPUT
+  ========================================================= */
 
   const handleEditChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -291,11 +308,9 @@ function Dashboard() {
     }));
   };
 
-  /*
-   * =========================================================
-   * IMAGE
-   * =========================================================
-   */
+  /* =========================================================
+     IMAGE FILE SELECT
+  ========================================================= */
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -312,21 +327,397 @@ function Dashboard() {
       return;
     }
 
-    setSelectedImage(file);
-    setSaveMessage("");
-
+    /*
+     * Remove previous preview URL.
+     */
     if (imagePreview) {
       URL.revokeObjectURL(imagePreview);
     }
 
-    setImagePreview(URL.createObjectURL(file));
+    /*
+     * Remove old crop processing URL if any.
+     */
+    if (cropObjectUrlRef.current) {
+      URL.revokeObjectURL(cropObjectUrlRef.current);
+      cropObjectUrlRef.current = null;
+    }
+
+    const preview = URL.createObjectURL(file);
+
+    setSelectedImage(file);
+    setImagePreview(preview);
+
+    setCropImage(preview);
+
+    setCropSettings({
+      zoom: 1,
+      offsetX: 0,
+      offsetY: 0,
+    });
+
+    setSaveMessage("");
+    setCropOpen(true);
+
+    e.target.value = "";
   };
 
-  /*
-   * =========================================================
-   * EDIT PROFILE
-   * =========================================================
-   */
+  /* =========================================================
+     CROP MODAL CLOSE
+  ========================================================= */
+
+  const handleCloseCrop = () => {
+    setCropOpen(false);
+
+    setCropSettings({
+      zoom: 1,
+      offsetX: 0,
+      offsetY: 0,
+    });
+  };
+
+  /* =========================================================
+     LOAD IMAGE SAFELY FOR CANVAS
+  ========================================================= */
+
+  const loadImageForCrop = async (
+    source: string,
+  ): Promise<HTMLImageElement | null> => {
+    try {
+      /*
+       * Blob/object URLs are already safe for canvas.
+       */
+      if (
+        source.startsWith("blob:") ||
+        source.startsWith("data:")
+      ) {
+        return await new Promise<HTMLImageElement | null>(
+          (resolve) => {
+            const img = new Image();
+
+            img.onload = () => resolve(img);
+
+            img.onerror = () => resolve(null);
+
+            img.src = source;
+          },
+        );
+      }
+
+      /*
+       * For backend/profile images, fetch the image as a Blob first.
+       * This avoids drawing the original cross-origin URL directly
+       * into the canvas.
+       */
+      const response = await fetch(source, {
+        method: "GET",
+      });
+
+      if (!response.ok) {
+        throw new Error("Unable to load image.");
+      }
+
+      const blob = await response.blob();
+
+      if (!blob.type.startsWith("image/")) {
+        throw new Error("Invalid image response.");
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+
+      /*
+       * Remember the temporary URL so it can be revoked later.
+       */
+      if (cropObjectUrlRef.current) {
+        URL.revokeObjectURL(cropObjectUrlRef.current);
+      }
+
+      cropObjectUrlRef.current = objectUrl;
+
+      return await new Promise<HTMLImageElement | null>(
+        (resolve) => {
+          const img = new Image();
+
+          img.onload = () => resolve(img);
+
+          img.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+
+            if (cropObjectUrlRef.current === objectUrl) {
+              cropObjectUrlRef.current = null;
+            }
+
+            resolve(null);
+          };
+
+          img.src = objectUrl;
+        },
+      );
+    } catch (err) {
+      console.error("Image loading error:", err);
+
+      /*
+       * Fallback for local/blob image sources.
+       */
+      try {
+        return await new Promise<HTMLImageElement | null>(
+          (resolve) => {
+            const img = new Image();
+
+            img.onload = () => resolve(img);
+
+            img.onerror = () => resolve(null);
+
+            img.src = source;
+          },
+        );
+      } catch {
+        return null;
+      }
+    }
+  };
+
+  /* =========================================================
+     CREATE CROPPED IMAGE
+  ========================================================= */
+
+  const createCroppedImage = async (): Promise<File | null> => {
+    if (!cropImage) {
+      return selectedImage;
+    }
+
+    const outputSize = 800;
+
+    const canvas =
+      cropCanvasRef.current || document.createElement("canvas");
+
+    canvas.width = outputSize;
+    canvas.height = outputSize;
+
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) {
+      setSaveMessage("Your browser could not prepare the crop.");
+      return null;
+    }
+
+    /*
+     * Important:
+     * Load the source image safely before drawing it.
+     */
+    const image = await loadImageForCrop(cropImage);
+
+    if (!image) {
+      setSaveMessage(
+        "Unable to load the image for cropping. Please choose the picture again.",
+      );
+      return null;
+    }
+
+    const naturalWidth = image.naturalWidth;
+    const naturalHeight = image.naturalHeight;
+
+    if (!naturalWidth || !naturalHeight) {
+      setSaveMessage("Unable to read image dimensions.");
+      return null;
+    }
+
+    /*
+     * Clear previous canvas content.
+     */
+    ctx.clearRect(0, 0, outputSize, outputSize);
+
+    /*
+     * Make the image cover the square crop area.
+     */
+    const baseScale = Math.max(
+      outputSize / naturalWidth,
+      outputSize / naturalHeight,
+    );
+
+    let drawWidth = naturalWidth * baseScale;
+    let drawHeight = naturalHeight * baseScale;
+
+    /*
+     * Apply zoom.
+     */
+    drawWidth *= cropSettings.zoom;
+    drawHeight *= cropSettings.zoom;
+
+    /*
+     * Apply position.
+     */
+    const x =
+      (outputSize - drawWidth) / 2 +
+      (cropSettings.offsetX / 100) * outputSize;
+
+    const y =
+      (outputSize - drawHeight) / 2 +
+      (cropSettings.offsetY / 100) * outputSize;
+
+    try {
+      ctx.save();
+
+      /*
+       * Keep output strictly inside square crop.
+       */
+      ctx.beginPath();
+      ctx.rect(0, 0, outputSize, outputSize);
+      ctx.clip();
+
+      ctx.drawImage(
+        image,
+        x,
+        y,
+        drawWidth,
+        drawHeight,
+      );
+
+      ctx.restore();
+    } catch (err) {
+      console.error("Canvas drawing error:", err);
+
+      setSaveMessage(
+        "Unable to crop this image. Please choose the picture again.",
+      );
+
+      return null;
+    }
+
+    /*
+     * Convert canvas to JPEG File.
+     */
+    return await new Promise<File | null>((resolve) => {
+      try {
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              setSaveMessage(
+                "Unable to create the cropped image. Please try again.",
+              );
+
+              resolve(null);
+              return;
+            }
+
+            const originalName =
+              selectedImage?.name || "profile-picture.jpg";
+
+            /*
+             * Always make sure extension/type is JPEG.
+             */
+            const baseName = originalName
+              .replace(/\.[^/.]+$/, "")
+              .trim();
+
+            const finalName = `${
+              baseName || "profile-picture"
+            }.jpg`;
+
+            const croppedFile = new File(
+              [blob],
+              finalName,
+              {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              },
+            );
+
+            resolve(croppedFile);
+          },
+          "image/jpeg",
+          0.92,
+        );
+      } catch (err) {
+        console.error("Canvas toBlob error:", err);
+
+        setSaveMessage(
+          "Unable to create the cropped image. Please try again.",
+        );
+
+        resolve(null);
+      }
+    });
+  };
+
+  /* =========================================================
+     APPLY CROP
+  ========================================================= */
+
+  const handleApplyCrop = async () => {
+    if (!cropImage) {
+      setSaveMessage("Please select an image first.");
+      return;
+    }
+
+    /*
+     * Disable duplicate clicks by changing message while processing.
+     */
+    setSaveMessage("Processing image...");
+
+    try {
+      const croppedFile = await createCroppedImage();
+
+      if (!croppedFile) {
+        return;
+      }
+
+      /*
+       * Create the NEW preview before revoking the old preview.
+       */
+      const newPreview = URL.createObjectURL(croppedFile);
+
+      /*
+       * Store cropped file.
+       * This is the file that will be sent to Django when
+       * Save Changes is clicked.
+       */
+      setSelectedImage(croppedFile);
+
+      /*
+       * Revoke old preview only after the new one exists.
+       */
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+
+      setImagePreview(newPreview);
+
+      /*
+       * The cropped image itself becomes the next crop source.
+       */
+      setCropImage(newPreview);
+
+      /*
+       * Reset controls after applying.
+       */
+      setCropSettings({
+        zoom: 1,
+        offsetX: 0,
+        offsetY: 0,
+      });
+
+      /*
+       * Close modal.
+       */
+      setCropOpen(false);
+
+      setSaveMessage(
+        "Image cropped successfully. Click Save Changes to save it.",
+      );
+    } catch (err) {
+      console.error("Apply crop error:", err);
+
+      setSaveMessage(
+        err instanceof Error
+          ? err.message
+          : "Unable to crop the image. Please try again.",
+      );
+    }
+  };
+
+  /* =========================================================
+     EDIT PROFILE
+  ========================================================= */
 
   const handleEditProfile = () => {
     if (!user) return;
@@ -353,11 +744,9 @@ function Dashboard() {
     }, 100);
   };
 
-  /*
-   * =========================================================
-   * CANCEL
-   * =========================================================
-   */
+  /* =========================================================
+     CANCEL EDIT
+  ========================================================= */
 
   const handleCancelEdit = () => {
     if (!user) return;
@@ -374,17 +763,28 @@ function Dashboard() {
       URL.revokeObjectURL(imagePreview);
     }
 
+    if (cropObjectUrlRef.current) {
+      URL.revokeObjectURL(cropObjectUrlRef.current);
+      cropObjectUrlRef.current = null;
+    }
+
     setSelectedImage(null);
     setImagePreview(null);
+    setCropImage(null);
     setSaveMessage("");
     setEditMode(false);
+    setCropOpen(false);
+
+    setCropSettings({
+      zoom: 1,
+      offsetX: 0,
+      offsetY: 0,
+    });
   };
 
-  /*
-   * =========================================================
-   * SAVE PROFILE
-   * =========================================================
-   */
+  /* =========================================================
+     SAVE PROFILE
+  ========================================================= */
 
   const handleSaveProfile = async () => {
     const token = localStorage.getItem("access_token");
@@ -406,6 +806,11 @@ function Dashboard() {
       formData.append("bio", editData.bio);
       formData.append("location", editData.location);
 
+      /*
+       * IMPORTANT:
+       * selectedImage now contains the cropped File after
+       * Apply Crop is clicked.
+       */
       if (selectedImage) {
         formData.append("profile_picture", selectedImage);
       }
@@ -459,8 +864,14 @@ function Dashboard() {
         URL.revokeObjectURL(imagePreview);
       }
 
+      if (cropObjectUrlRef.current) {
+        URL.revokeObjectURL(cropObjectUrlRef.current);
+        cropObjectUrlRef.current = null;
+      }
+
       setSelectedImage(null);
       setImagePreview(null);
+      setCropImage(null);
       setEditMode(false);
       setSaveMessage("Profile updated successfully.");
 
@@ -483,11 +894,9 @@ function Dashboard() {
     }
   };
 
-  /*
-   * =========================================================
-   * DISPLAY VALUES
-   * =========================================================
-   */
+  /* =========================================================
+     DISPLAY VALUES
+  ========================================================= */
 
   const fullName = useMemo(() => {
     if (!user) return "User";
@@ -514,11 +923,9 @@ function Dashboard() {
 
   const skills = user?.skills || [];
 
-  /*
-   * =========================================================
-   * PROFILE COMPLETION
-   * =========================================================
-   */
+  /* =========================================================
+     PROFILE COMPLETION
+  ========================================================= */
 
   const profileCompletion =
     (user?.first_name ? 20 : 0) +
@@ -528,15 +935,9 @@ function Dashboard() {
     (user?.location ? 15 : 0) +
     (user?.profile_picture ? 15 : 0);
 
-  /*
-   * =========================================================
-   * REAL CAREER DATA HELPERS
-   * =========================================================
-   */
-
-  const topCareer = useMemo(() => {
-    return careerData.recommendations[0] || null;
-  }, [careerData.recommendations]);
+  /* =========================================================
+     CAREER HELPERS
+  ========================================================= */
 
   const getCareerName = (career: CareerRecommendation) => {
     return (
@@ -571,34 +972,20 @@ function Dashboard() {
     return career.average_salary || career.salary || null;
   };
 
-  /*
-   * =========================================================
-   * DYNAMIC CAREER READINESS
-   * =========================================================
-   */
+  /* =========================================================
+     CAREER READINESS
+  ========================================================= */
 
   const careerReadiness = useMemo(() => {
     let score = profileCompletion;
-
-    /*
-     * Skill foundation
-     */
 
     if (skills.length >= 1) score += 3;
     if (skills.length >= 3) score += 5;
     if (skills.length >= 5) score += 5;
 
-    /*
-     * Professional context
-     */
-
     if (user?.bio && user.bio.length >= 80) {
       score += 5;
     }
-
-    /*
-     * Real career alignment
-     */
 
     if (topCareer) {
       const match = getCareerScore(topCareer);
@@ -629,19 +1016,14 @@ function Dashboard() {
           ? "Growing"
           : "Getting Started";
 
-  /*
-   * =========================================================
-   * DYNAMIC READINESS BREAKDOWN
-   * =========================================================
-   */
+  /* =========================================================
+     BREAKDOWN
+  ========================================================= */
 
   const skillFoundationScore = useMemo(() => {
     if (skills.length === 0) return 0;
 
-    return Math.min(
-      100,
-      20 + skills.length * 13,
-    );
+    return Math.min(100, 20 + skills.length * 13);
   }, [skills.length]);
 
   const learningMomentumScore = useMemo(() => {
@@ -662,18 +1044,14 @@ function Dashboard() {
     ? getCareerScore(topCareer)
     : 0;
 
-  /*
-   * =========================================================
-   * DYNAMIC MISSING SKILLS
-   * =========================================================
-   */
+  /* =========================================================
+     MISSING SKILLS
+  ========================================================= */
 
   const missingSkills = useMemo(() => {
     if (!topCareer) return [];
 
-    const rawMissing =
-      topCareer.missing_skills ||
-      [];
+    const rawMissing = topCareer.missing_skills || [];
 
     if (!Array.isArray(rawMissing)) {
       return [];
@@ -699,11 +1077,9 @@ function Dashboard() {
       .slice(0, 4);
   }, [topCareer]);
 
-  /*
-   * =========================================================
-   * SMART INSIGHT
-   * =========================================================
-   */
+  /* =========================================================
+     SMART INSIGHT
+  ========================================================= */
 
   const smartInsight = useMemo(() => {
     if (!user) {
@@ -794,11 +1170,9 @@ function Dashboard() {
     topCareer,
   ]);
 
-  /*
-   * =========================================================
-   * NEXT BEST MOVE
-   * =========================================================
-   */
+  /* =========================================================
+     NEXT BEST MOVE
+  ========================================================= */
 
   const nextBestMove = useMemo(() => {
     if (!user || profileCompletion < 50) {
@@ -864,11 +1238,9 @@ function Dashboard() {
     topCareer,
   ]);
 
-  /*
-   * =========================================================
-   * LOADING
-   * =========================================================
-   */
+  /* =========================================================
+     LOADING
+  ========================================================= */
 
   if (loading) {
     return (
@@ -890,11 +1262,9 @@ function Dashboard() {
     );
   }
 
-  /*
-   * =========================================================
-   * ERROR
-   * =========================================================
-   */
+  /* =========================================================
+     ERROR
+  ========================================================= */
 
   if (error) {
     return (
@@ -914,7 +1284,7 @@ function Dashboard() {
 
           <Link
             to="/login"
-            className="mt-6 inline-flex rounded-xl bg-[var(--primary)] px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
+            className="mt-6 inline-flex rounded-xl bg-[var(--primary)] px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:-translate-y-0.5"
           >
             Back to Login
           </Link>
@@ -969,13 +1339,11 @@ function Dashboard() {
       <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]/85 backdrop-blur-2xl">
         <div className="mx-auto flex min-h-[70px] max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
 
-          {/* LOGO */}
-
           <Link
             to="/"
             className="group flex shrink-0 items-center gap-3"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary)] text-white font-bold">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary)] font-bold text-white">
               S
             </div>
 
@@ -984,50 +1352,43 @@ function Dashboard() {
             </span>
           </Link>
 
-          {/* NAV */}
-
           <nav className="hidden flex-1 items-center justify-center gap-1 md:flex">
-
             <Link
               to="/skills"
-              className="whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
+              className="rounded-xl px-4 py-2 text-sm font-semibold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
             >
               Skills
             </Link>
 
             <Link
               to="/resources"
-              className="whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
+              className="rounded-xl px-4 py-2 text-sm font-semibold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
             >
               Resources
             </Link>
 
             <Link
               to="/career"
-              className="whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
+              className="rounded-xl px-4 py-2 text-sm font-semibold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
             >
               Career
             </Link>
 
             <Link
               to="/opportunities"
-              className="whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
+              className="rounded-xl px-4 py-2 text-sm font-semibold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
             >
               Opportunities
             </Link>
-
           </nav>
-
-          {/* LOGOUT */}
 
           <button
             type="button"
             onClick={handleLogout}
-            className="shrink-0 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-bold text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-[var(--primary-hover)] hover:shadow-lg sm:px-5"
+            className="ml-auto rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
           >
             Log out
           </button>
-
         </div>
       </header>
 
@@ -1038,18 +1399,14 @@ function Dashboard() {
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
 
         {/* ===================================================
-            HERO / PROFILE OVERVIEW
+            PROFILE HERO
         ==================================================== */}
 
         <section className="relative overflow-hidden rounded-[2.25rem] border border-[var(--border)] bg-[var(--surface)] shadow-xl">
 
           <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-[var(--primary-soft)] opacity-50 blur-3xl" />
 
-          <div className="absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-[var(--primary-soft)] opacity-20 blur-3xl" />
-
           <div className="relative grid lg:grid-cols-[1fr_300px]">
-
-            {/* PROFILE */}
 
             <div className="p-6 sm:p-8 lg:p-10">
 
@@ -1068,13 +1425,13 @@ function Dashboard() {
                       className="h-full w-full rounded-[2rem] object-cover shadow-xl ring-4 ring-[var(--primary-soft)] transition duration-300 group-hover:scale-[1.03]"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center rounded-[2rem] bg-[var(--primary-soft)] text-5xl font-black text-[var(--primary)] shadow-xl ring-4 ring-[var(--primary-soft)] transition duration-300 group-hover:scale-[1.03]">
+                    <div className="flex h-full w-full items-center justify-center rounded-[2rem] bg-[var(--primary-soft)] text-5xl font-black text-[var(--primary)] shadow-xl ring-4 ring-[var(--primary-soft)]">
                       {avatarLetter}
                     </div>
                   )}
 
-                  <span className="absolute -bottom-2 -right-2 flex h-10 w-10 items-center justify-center rounded-xl border-4 border-[var(--surface)] bg-[var(--primary)] text-white shadow-lg transition group-hover:rotate-6">
-                    ✎
+                  <span className="absolute -bottom-2 -right-2 flex h-11 w-11 items-center justify-center rounded-xl border-4 border-[var(--surface)] bg-[var(--primary)] text-lg text-white shadow-lg transition group-hover:scale-105">
+                    📷
                   </span>
                 </button>
 
@@ -1107,15 +1464,14 @@ function Dashboard() {
 
                     {user?.location && (
                       <span className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3.5 py-2.5 text-xs font-semibold">
-                        <span>📍</span>
-                        {user.location}
+                        📍 {user.location}
                       </span>
                     )}
 
                     <button
                       type="button"
                       onClick={handleEditProfile}
-                      className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-xs font-bold text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-[var(--primary-hover)] hover:shadow-lg"
+                      className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-xs font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
                     >
                       Edit Profile
                       <span>→</span>
@@ -1126,12 +1482,9 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* COMPLETION */}
-
             <div className="border-t border-[var(--border)] bg-[var(--bg)]/60 p-6 lg:border-l lg:border-t-0 lg:p-8">
 
               <div className="flex items-start justify-between">
-
                 <div>
                   <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
                     Profile health
@@ -1145,7 +1498,6 @@ function Dashboard() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-sm font-black text-[var(--primary)]">
                   {profileCompletion}%
                 </div>
-
               </div>
 
               <div className="mt-6 h-2.5 overflow-hidden rounded-full bg-[var(--border)]">
@@ -1158,7 +1510,6 @@ function Dashboard() {
               </div>
 
               <div className="mt-4 flex items-center justify-between">
-
                 <span className="text-xs opacity-50">
                   Profile status
                 </span>
@@ -1168,13 +1519,11 @@ function Dashboard() {
                     ? "Complete"
                     : "In Progress"}
                 </span>
-
               </div>
 
               <p className="mt-5 text-xs leading-5 opacity-55">
                 Complete your profile to make your SkillBridge experience more personalized.
               </p>
-
             </div>
           </div>
         </section>
@@ -1185,11 +1534,7 @@ function Dashboard() {
 
         <section className="mt-6 grid gap-5 lg:grid-cols-[1fr_300px]">
 
-          {/* INSIGHT */}
-
           <div className="relative overflow-hidden rounded-[2rem] border border-[var(--primary)]/15 bg-[var(--surface)] p-6 shadow-lg sm:p-8">
-
-            <div className="absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[var(--primary-soft)] opacity-50 blur-3xl" />
 
             <div className="relative flex flex-col gap-5 sm:flex-row">
 
@@ -1200,7 +1545,6 @@ function Dashboard() {
               <div className="min-w-0 flex-1">
 
                 <div className="flex flex-wrap items-center gap-2">
-
                   <span className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
                     Smart Career Insight
                   </span>
@@ -1208,7 +1552,6 @@ function Dashboard() {
                   <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-[8px] font-extrabold text-[var(--primary)]">
                     LIVE
                   </span>
-
                 </div>
 
                 <h2 className="mt-2 text-xl font-extrabold text-[var(--text-heading)] sm:text-2xl">
@@ -1225,7 +1568,7 @@ function Dashboard() {
                   smartInsight.action === "Explore Skills" ? (
                     <Link
                       to="/skills"
-                      className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
+                      className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5"
                     >
                       {smartInsight.action}
                       <span>→</span>
@@ -1233,7 +1576,7 @@ function Dashboard() {
                   ) : smartInsight.action === "Explore Career" ? (
                     <Link
                       to="/career"
-                      className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold !text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
+                      className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold !text-white shadow-md transition hover:-translate-y-0.5"
                     >
                       Explore Career
                       <span>→</span>
@@ -1242,24 +1585,20 @@ function Dashboard() {
                     <button
                       type="button"
                       onClick={handleEditProfile}
-                      className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
+                      className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5"
                     >
                       {smartInsight.action}
                       <span>→</span>
                     </button>
                   )}
-
                 </div>
               </div>
             </div>
           </div>
 
-          {/* READINESS */}
-
           <div className="rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-lg">
 
             <div className="flex items-center justify-between">
-
               <div>
                 <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
                   Career Intelligence
@@ -1270,14 +1609,10 @@ function Dashboard() {
                 </h2>
               </div>
 
-              <div className="text-2xl">
-                🚀
-              </div>
-
+              <div className="text-2xl">🚀</div>
             </div>
 
             <div className="mt-6 flex items-end justify-between">
-
               <span className="text-4xl font-black text-[var(--text-heading)]">
                 {careerReadiness}%
               </span>
@@ -1285,22 +1620,18 @@ function Dashboard() {
               <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-[9px] font-extrabold text-[var(--primary)]">
                 {readinessLabel}
               </span>
-
             </div>
 
             <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--border)]">
-
               <div
                 className="h-full rounded-full bg-[var(--primary)] transition-all duration-700"
                 style={{
                   width: `${careerReadiness}%`,
                 }}
               />
-
             </div>
 
             <div className="mt-4 flex items-center justify-between text-[10px]">
-
               <span className="opacity-50">
                 Intelligence status
               </span>
@@ -1312,69 +1643,53 @@ function Dashboard() {
                     ? "Live Career Match"
                     : "Profile Analysis"}
               </span>
-
             </div>
-
           </div>
         </section>
 
         {/* ===================================================
-            AI CAREER INTELLIGENCE CENTER
+            AI CAREER INTELLIGENCE
         ==================================================== */}
 
         <section className="mt-6 grid gap-5 lg:grid-cols-[1.25fr_0.75fr]">
 
-          {/* TOP CAREER MATCH */}
-
           <div className="relative overflow-hidden rounded-[2rem] border border-[var(--primary)]/20 bg-[var(--surface)] p-6 shadow-lg sm:p-8">
-
-            <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[var(--primary-soft)] opacity-50 blur-3xl" />
 
             <div className="relative">
 
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 
-                <div>
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
 
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--primary)] text-white">
-                      ✨
-                    </span>
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--primary)] text-white">
+                    ✨
+                  </span>
 
-                    <div>
+                  <div>
+                    <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
+                      SkillBridge Intelligence
+                    </p>
 
-                      <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
-                        SkillBridge Intelligence
-                      </p>
-
-                      <h2 className="text-xl font-black text-[var(--text-heading)]">
-                        Your Career Match
-                      </h2>
-
-                    </div>
-
+                    <h2 className="text-xl font-black text-[var(--text-heading)]">
+                      Your Career Match
+                    </h2>
                   </div>
                 </div>
 
                 <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-[9px] font-extrabold text-[var(--primary)]">
                   DYNAMIC
                 </span>
-
               </div>
 
               {careerData.loading ? (
-
                 <div className="mt-7 flex items-center gap-3 rounded-2xl bg-[var(--bg)] p-5">
-
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--primary)]" />
 
                   <p className="text-sm font-semibold opacity-60">
                     Analyzing your current skills...
                   </p>
-
                 </div>
-
-              ) : topCareer ? (
+              ) : selectedCareer ? (
 
                 <div className="mt-7">
 
@@ -1387,78 +1702,87 @@ function Dashboard() {
                     <div className="min-w-0 flex-1">
 
                       <p className="text-xs font-bold opacity-50">
-                        Top recommended career
+                        Selected career
                       </p>
 
                       <h3 className="mt-1 text-2xl font-black text-[var(--text-heading)]">
-                        {getCareerName(topCareer)}
+                        {getCareerName(selectedCareer)}
                       </h3>
 
                       <div className="mt-3 flex flex-wrap gap-2">
 
                         <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-[10px] font-extrabold text-[var(--primary)]">
-                          {getCareerScore(topCareer)}% Match
+                          {getCareerScore(selectedCareer)}% Match
                         </span>
 
                         <span className="rounded-full border border-[var(--border)] px-3 py-1.5 text-[10px] font-bold">
-                          Demand: {getCareerDemand(topCareer)}
+                          Demand: {getCareerDemand(selectedCareer)}
                         </span>
 
                       </div>
-
                     </div>
                   </div>
 
                   <div className="mt-6 grid gap-3 sm:grid-cols-3">
 
                     <div className="rounded-2xl bg-[var(--bg)] p-4">
-
                       <p className="text-[9px] font-extrabold uppercase tracking-wider opacity-45">
                         Match
                       </p>
 
                       <p className="mt-2 text-xl font-black text-[var(--primary)]">
-                        {getCareerScore(topCareer)}%
+                        {getCareerScore(selectedCareer)}%
                       </p>
-
                     </div>
 
                     <div className="rounded-2xl bg-[var(--bg)] p-4">
-
                       <p className="text-[9px] font-extrabold uppercase tracking-wider opacity-45">
                         Demand
                       </p>
 
                       <p className="mt-2 truncate text-sm font-black text-[var(--text-heading)]">
-                        {getCareerDemand(topCareer)}
+                        {getCareerDemand(selectedCareer)}
                       </p>
-
                     </div>
 
                     <div className="rounded-2xl bg-[var(--bg)] p-4">
-
                       <p className="text-[9px] font-extrabold uppercase tracking-wider opacity-45">
                         Salary
                       </p>
 
                       <p className="mt-2 truncate text-sm font-black text-[var(--text-heading)]">
-                        {getCareerSalary(topCareer)
-                          ? String(getCareerSalary(topCareer))
+                        {getCareerSalary(selectedCareer)
+                          ? String(getCareerSalary(selectedCareer))
                           : "Available in Career"}
                       </p>
-
                     </div>
 
                   </div>
 
-                  <div className="mt-6">
+                  <div className="mt-6 flex flex-wrap gap-3">
+
+                    <button
+                      type="button"
+                      onClick={() => setCareerSelectorOpen(true)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-5 py-2.5 text-sm font-bold text-[var(--text-heading)] transition hover:border-[var(--primary)] hover:text-[var(--primary)]"
+                    >
+                      🔄 Select Career
+                    </button>
 
                     <Link
                       to="/career"
-                      className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold !text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
+                      className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold !text-white shadow-md transition hover:-translate-y-0.5"
                     >
-                      View Full Career Analysis
+                      View Career
                       <span>→</span>
+                    </Link>
+
+                    <Link
+                      to="/mock-interview"
+                      state={{ career: selectedCareer }}
+                      className="inline-flex items-center gap-2 rounded-xl border border-[var(--primary)] bg-[var(--primary-soft)] px-5 py-2.5 text-sm font-bold text-[var(--primary)] transition hover:-translate-y-0.5"
+                    >
+                      🧠 Take Mock Test
                     </Link>
 
                   </div>
@@ -1485,17 +1809,11 @@ function Dashboard() {
                   </Link>
 
                 </div>
-
               )}
-
             </div>
           </div>
 
-          {/* NEXT BEST MOVE */}
-
           <div className="relative overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-lg sm:p-7">
-
-            <div className="absolute -right-12 -top-12 h-36 w-36 rounded-full bg-[var(--primary-soft)] opacity-50 blur-3xl" />
 
             <div className="relative">
 
@@ -1522,30 +1840,25 @@ function Dashboard() {
               <div className="mt-6">
 
                 {nextBestMove.link ? (
-
                   <Link
                     to={nextBestMove.link}
-                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold !text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
+                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold !text-white shadow-md transition hover:-translate-y-0.5"
                   >
                     {nextBestMove.action}
                     <span>→</span>
                   </Link>
-
                 ) : (
-
                   <button
                     type="button"
                     onClick={handleEditProfile}
-                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
+                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5"
                   >
                     {nextBestMove.action}
                     <span>→</span>
                   </button>
-
                 )}
 
               </div>
-
             </div>
           </div>
         </section>
@@ -1559,7 +1872,6 @@ function Dashboard() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
 
             <div>
-
               <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
                 Intelligence Breakdown
               </p>
@@ -1571,15 +1883,12 @@ function Dashboard() {
               <p className="mt-2 max-w-2xl text-sm leading-6 opacity-60">
                 Your readiness adapts to the information currently available in your profile and career match.
               </p>
-
             </div>
 
             <div className="rounded-xl bg-[var(--primary-soft)] px-4 py-2 text-center">
-
               <span className="text-xs font-black text-[var(--primary)]">
                 {careerReadiness}% Overall
               </span>
-
             </div>
 
           </div>
@@ -1605,8 +1914,8 @@ function Dashboard() {
                 label: "Career Alignment",
                 value: careerAlignmentScore,
                 icon: "🚀",
-                description: topCareer
-                  ? `Based on ${getCareerName(topCareer)}`
+                description: selectedCareer
+                  ? `Based on ${getCareerName(selectedCareer)}`
                   : "Waiting for career match",
               },
               {
@@ -1616,12 +1925,10 @@ function Dashboard() {
                 description: "Current learning profile strength",
               },
             ].map((item) => (
-
               <div
                 key={item.label}
                 className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5"
               >
-
                 <div className="flex items-center justify-between gap-4">
 
                   <div className="flex min-w-0 items-center gap-3">
@@ -1631,7 +1938,6 @@ function Dashboard() {
                     </div>
 
                     <div className="min-w-0">
-
                       <p className="truncate text-sm font-extrabold text-[var(--text-heading)]">
                         {item.label}
                       </p>
@@ -1639,27 +1945,22 @@ function Dashboard() {
                       <p className="mt-1 truncate text-[10px] opacity-50">
                         {item.description}
                       </p>
-
                     </div>
                   </div>
 
                   <span className="text-lg font-black text-[var(--primary)]">
                     {item.value}%
                   </span>
-
                 </div>
 
                 <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--border)]">
-
                   <div
                     className="h-full rounded-full bg-[var(--primary)] transition-all duration-700"
                     style={{
                       width: `${item.value}%`,
                     }}
                   />
-
                 </div>
-
               </div>
             ))}
 
@@ -1676,7 +1977,6 @@ function Dashboard() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
               <div>
-
                 <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
                   Skill Gap Intelligence
                 </p>
@@ -1692,7 +1992,6 @@ function Dashboard() {
                   </span>
                   .
                 </p>
-
               </div>
 
               <Link
@@ -1702,20 +2001,16 @@ function Dashboard() {
                 Full Analysis
                 <span>→</span>
               </Link>
-
             </div>
 
             {missingSkills.length > 0 ? (
-
               <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 
                 {missingSkills.map((skillName) => (
-
                   <div
                     key={skillName}
                     className="group rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-4 transition hover:-translate-y-1 hover:border-[var(--primary)]/40 hover:bg-[var(--primary-soft)]"
                   >
-
                     <div className="flex items-center justify-between">
 
                       <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-sm">
@@ -1725,7 +2020,6 @@ function Dashboard() {
                       <span className="text-xs font-black text-[var(--primary)]">
                         Gap
                       </span>
-
                     </div>
 
                     <p className="mt-4 text-sm font-extrabold text-[var(--text-heading)]">
@@ -1738,16 +2032,12 @@ function Dashboard() {
                     >
                       Explore skill →
                     </Link>
-
                   </div>
                 ))}
 
               </div>
-
             ) : (
-
               <div className="mt-6 rounded-2xl bg-[var(--primary-soft)] p-5">
-
                 <p className="text-sm font-extrabold text-[var(--text-heading)]">
                   🎉 No major skill gaps reported
                 </p>
@@ -1755,11 +2045,8 @@ function Dashboard() {
                 <p className="mt-1 text-xs leading-5 opacity-60">
                   Your current profile is showing a strong alignment with this career path.
                 </p>
-
               </div>
-
             )}
-
           </section>
         )}
 
@@ -1799,14 +2086,10 @@ function Dashboard() {
                 : "No match yet",
             },
           ].map((stat) => (
-
             <div
               key={stat.label}
               className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[var(--primary)]/30 hover:shadow-lg"
             >
-
-              <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-[var(--primary-soft)] opacity-0 blur-2xl transition duration-300 group-hover:opacity-80" />
-
               <div className="relative flex items-center justify-between">
 
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-lg">
@@ -1816,7 +2099,6 @@ function Dashboard() {
                 <span className="max-w-[55%] truncate text-[9px] font-extrabold uppercase tracking-wider opacity-40">
                   {stat.label}
                 </span>
-
               </div>
 
               <p className="relative mt-5 truncate text-2xl font-black text-[var(--text-heading)]">
@@ -1826,7 +2108,6 @@ function Dashboard() {
               <p className="relative mt-1 truncate text-xs opacity-55">
                 {stat.description}
               </p>
-
             </div>
           ))}
 
@@ -1859,27 +2140,14 @@ function Dashboard() {
             <p className="mt-2 max-w-2xl text-sm opacity-65">
               Everything you need to strengthen your skills and move toward the right career path.
             </p>
-
           </div>
 
-          {/* =================================================
-              WORKSPACE CARDS
-              Skills → Resources → Career → Opportunities
-          ================================================== */}
-
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-
-            {/* =================================================
-                SKILLS
-            ================================================== */}
 
             <Link
               to="/skills"
               className="group relative overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition duration-300 hover:-translate-y-2 hover:border-[var(--primary)]/40 hover:shadow-xl"
             >
-
-              <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[var(--primary-soft)] opacity-0 blur-3xl transition duration-500 group-hover:opacity-100" />
-
               <div className="relative">
 
                 <div className="flex items-center justify-between">
@@ -1891,7 +2159,6 @@ function Dashboard() {
                   <span className="text-lg opacity-30 transition group-hover:translate-x-1 group-hover:text-[var(--primary)] group-hover:opacity-100">
                     →
                   </span>
-
                 </div>
 
                 <p className="mt-6 text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
@@ -1917,21 +2184,13 @@ function Dashboard() {
                   </span>
 
                 </div>
-
               </div>
             </Link>
-
-            {/* =================================================
-                RESOURCES
-            ================================================== */}
 
             <Link
               to="/resources"
               className="group relative overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition duration-300 hover:-translate-y-2 hover:border-[var(--primary)]/40 hover:shadow-xl"
             >
-
-              <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[var(--primary-soft)] opacity-0 blur-3xl transition duration-500 group-hover:opacity-100" />
-
               <div className="relative">
 
                 <div className="flex items-center justify-between">
@@ -1943,7 +2202,6 @@ function Dashboard() {
                   <span className="text-lg opacity-30 transition group-hover:translate-x-1 group-hover:text-[var(--primary)] group-hover:opacity-100">
                     →
                   </span>
-
                 </div>
 
                 <p className="mt-6 text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
@@ -1967,22 +2225,11 @@ function Dashboard() {
                   <span className="font-black text-[var(--primary)]">
                     →
                   </span>
-
                 </div>
-
               </div>
             </Link>
 
-            {/* =================================================
-                CAREER
-            ================================================== */}
-
-            <Link
-              to="/career"
-              className="group relative overflow-hidden rounded-[2rem] border border-[var(--primary)]/20 bg-[var(--primary-soft)]/30 p-6 shadow-sm transition duration-300 hover:-translate-y-2 hover:border-[var(--primary)]/50 hover:shadow-xl"
-            >
-
-              <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[var(--primary-soft)] opacity-50 blur-3xl transition duration-500 group-hover:scale-125" />
+            <div className="group relative overflow-hidden rounded-[2rem] border border-[var(--primary)]/20 bg-[var(--primary-soft)]/30 p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[var(--primary)]/50 hover:shadow-xl">
 
               <div className="relative">
 
@@ -1992,10 +2239,9 @@ function Dashboard() {
                     🚀
                   </div>
 
-                  <span className="text-lg opacity-40 transition group-hover:translate-x-1 group-hover:text-[var(--primary)] group-hover:opacity-100">
-                    →
+                  <span className="text-lg opacity-40">
+                    ✦
                   </span>
-
                 </div>
 
                 <p className="mt-6 text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
@@ -2007,38 +2253,64 @@ function Dashboard() {
                 </h3>
 
                 <p className="mt-2 min-h-[48px] text-sm leading-6 opacity-65">
-                  Explore career directions that align with your current skills.
+                  Select a career path and continue with career analysis or mock preparation.
                 </p>
 
-                <div className="mt-5 flex items-center justify-between rounded-xl bg-[var(--surface)]/80 px-4 py-3">
+                <button
+                  type="button"
+                  onClick={() => setCareerSelectorOpen(true)}
+                  disabled={careerData.recommendations.length === 0}
+                  className="mt-5 flex w-full items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-left transition hover:border-[var(--primary)] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <div className="min-w-0">
+                    <span className="block text-[9px] font-extrabold uppercase tracking-wider opacity-45">
+                      Selected Career
+                    </span>
 
-                  <span className="text-xs font-bold">
-                    {topCareer
-                      ? `${getCareerScore(topCareer)}% current match`
-                      : "Discover your path"}
-                  </span>
+                    <span className="mt-1 block truncate text-xs font-bold text-[var(--text-heading)]">
+                      {selectedCareer
+                        ? getCareerName(selectedCareer)
+                        : "Select a career"}
+                    </span>
+                  </div>
 
-                  <span className="font-black text-[var(--primary)]">
-                    →
+                  <span className="shrink-0 text-[var(--primary)]">
+                    ⌄
                   </span>
+                </button>
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+
+                  <Link
+                    to="/career"
+                    className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)] px-3 py-2.5 text-[11px] font-bold !text-white transition hover:-translate-y-0.5"
+                  >
+                    View Career
+                  </Link>
+
+                  <Link
+                    to="/mock-interview"
+                    state={{
+                      career: selectedCareer,
+                    }}
+                    className={`inline-flex items-center justify-center rounded-xl border border-[var(--primary)] px-3 py-2.5 text-[11px] font-bold text-[var(--primary)] transition hover:-translate-y-0.5 ${
+                      selectedCareer
+                        ? "bg-[var(--surface)]"
+                        : "pointer-events-none opacity-50"
+                    }`}
+                  >
+                    Mock Test
+                  </Link>
 
                 </div>
 
               </div>
-            </Link>
-
-            {/* =================================================
-                OPPORTUNITIES
-                NEW CARD
-            ================================================== */}
+            </div>
 
             <Link
               to="/opportunities"
               className="group relative overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition duration-300 hover:-translate-y-2 hover:border-[var(--primary)]/40 hover:shadow-xl"
             >
-
-              <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[var(--primary-soft)] opacity-0 blur-3xl transition duration-500 group-hover:opacity-100" />
-
               <div className="relative">
 
                 <div className="flex items-center justify-between">
@@ -2050,7 +2322,6 @@ function Dashboard() {
                   <span className="text-lg opacity-30 transition group-hover:translate-x-1 group-hover:text-[var(--primary)] group-hover:opacity-100">
                     →
                   </span>
-
                 </div>
 
                 <p className="mt-6 text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
@@ -2074,9 +2345,7 @@ function Dashboard() {
                   <span className="font-black text-[var(--primary)]">
                     →
                   </span>
-
                 </div>
-
               </div>
             </Link>
 
@@ -2100,7 +2369,6 @@ function Dashboard() {
                 </div>
 
                 <div>
-
                   <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
                     Skill Profile
                   </p>
@@ -2108,7 +2376,6 @@ function Dashboard() {
                   <h2 className="mt-1 text-xl font-extrabold text-[var(--text-heading)]">
                     Your skills
                   </h2>
-
                 </div>
 
               </div>
@@ -2121,7 +2388,7 @@ function Dashboard() {
 
             <Link
               to="/skills"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold !text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold !text-white shadow-md transition hover:-translate-y-0.5"
             >
               Manage Skills
               <span>→</span>
@@ -2136,12 +2403,10 @@ function Dashboard() {
               <div className="flex flex-wrap gap-3">
 
                 {skills.slice(0, 8).map((skill) => (
-
                   <div
                     key={skill.id}
-                    className="group rounded-2xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 transition duration-200 hover:-translate-y-1 hover:border-[var(--primary)]/40 hover:bg-[var(--primary-soft)]"
+                    className="group rounded-2xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 transition hover:-translate-y-1 hover:border-[var(--primary)]/40 hover:bg-[var(--primary-soft)]"
                   >
-
                     <p className="text-sm font-bold text-[var(--text-heading)]">
                       {skill.name}
                     </p>
@@ -2151,20 +2416,16 @@ function Dashboard() {
                         {skill.category}
                       </p>
                     )}
-
                   </div>
-
                 ))}
 
                 {skills.length > 8 && (
-
                   <Link
                     to="/skills"
                     className="flex items-center rounded-2xl border border-dashed border-[var(--border)] px-4 py-3 text-sm font-bold text-[var(--primary)] transition hover:border-[var(--primary)] hover:bg-[var(--primary-soft)]"
                   >
                     +{skills.length - 8} more
                   </Link>
-
                 )}
 
               </div>
@@ -2187,15 +2448,13 @@ function Dashboard() {
 
                 <Link
                   to="/skills"
-                  className="mt-5 inline-flex rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
+                  className="mt-5 inline-flex rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white shadow-md"
                 >
                   Add Your First Skill
                 </Link>
 
               </div>
-
             )}
-
           </div>
         </section>
 
@@ -2229,16 +2488,14 @@ function Dashboard() {
               </div>
 
               {!editMode && (
-
                 <button
                   type="button"
                   onClick={handleEditProfile}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5"
                 >
                   Edit Profile
                   <span>✎</span>
                 </button>
-
               )}
 
             </div>
@@ -2267,7 +2524,6 @@ function Dashboard() {
                     </p>
 
                   </div>
-
                 </div>
               </div>
 
@@ -2277,33 +2533,79 @@ function Dashboard() {
 
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5">
 
-                  <p className="mb-4 text-sm font-bold text-[var(--text-heading)]">
-                    Profile Picture
-                  </p>
+                  <div className="flex items-center justify-between">
 
-                  <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+                    <p className="text-sm font-bold text-[var(--text-heading)]">
+                      Profile Picture
+                    </p>
+
+                    <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1 text-[9px] font-bold text-[var(--primary)]">
+                      Crop & Adjust
+                    </span>
+
+                  </div>
+
+                  <div className="mt-4 flex flex-col gap-5 sm:flex-row sm:items-center">
 
                     {avatarUrl ? (
+                      <div className="relative h-24 w-24 shrink-0">
 
-                      <img
-                        src={avatarUrl}
-                        alt="Profile preview"
-                        className="h-24 w-24 rounded-2xl object-cover shadow-lg ring-2 ring-[var(--primary-soft)]"
-                      />
+                        <img
+                          src={avatarUrl}
+                          alt="Profile preview"
+                          className="h-24 w-24 rounded-2xl object-cover shadow-lg ring-2 ring-[var(--primary-soft)]"
+                        />
 
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (imagePreview) {
+                              setCropImage(imagePreview);
+
+                              setCropSettings({
+                                zoom: 1,
+                                offsetX: 0,
+                                offsetY: 0,
+                              });
+
+                              setCropOpen(true);
+                            } else if (user?.profile_picture) {
+                              const url =
+                                user.profile_picture.startsWith(
+                                  "http",
+                                )
+                                  ? user.profile_picture
+                                  : `${API_URL}${user.profile_picture}`;
+
+                              setCropImage(url);
+
+                              setCropSettings({
+                                zoom: 1,
+                                offsetX: 0,
+                                offsetY: 0,
+                              });
+
+                              setCropOpen(true);
+                            }
+                          }}
+                          className="absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-xl border-4 border-[var(--bg)] bg-[var(--primary)] text-sm text-white shadow-lg"
+                          title="Adjust image"
+                        >
+                          ✎
+                        </button>
+
+                      </div>
                     ) : (
-
                       <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-3xl font-black text-[var(--primary)]">
                         {avatarLetter}
                       </div>
-
                     )}
 
                     <div>
 
                       <label
                         htmlFor="profile_picture"
-                        className="inline-flex cursor-pointer rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
+                        className="inline-flex cursor-pointer rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5"
                       >
                         Choose Picture
                       </label>
@@ -2323,7 +2625,7 @@ function Dashboard() {
 
                       {selectedImage && (
                         <p className="mt-1 text-xs font-semibold text-[var(--primary)]">
-                          Selected: {selectedImage.name}
+                          Image ready to save: {selectedImage.name}
                         </p>
                       )}
 
@@ -2336,7 +2638,6 @@ function Dashboard() {
                 <div className="grid gap-5 sm:grid-cols-2">
 
                   <div>
-
                     <label
                       htmlFor="first_name"
                       className="mb-2 block text-sm font-bold text-[var(--text-heading)]"
@@ -2354,11 +2655,9 @@ function Dashboard() {
                       autoComplete="given-name"
                       className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:opacity-40 focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary-soft)]"
                     />
-
                   </div>
 
                   <div>
-
                     <label
                       htmlFor="last_name"
                       className="mb-2 block text-sm font-bold text-[var(--text-heading)]"
@@ -2376,7 +2675,6 @@ function Dashboard() {
                       autoComplete="family-name"
                       className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--text-heading)] outline-none transition placeholder:opacity-40 focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary-soft)]"
                     />
-
                   </div>
 
                 </div>
@@ -2460,7 +2758,7 @@ function Dashboard() {
                     type="button"
                     onClick={handleSaveProfile}
                     disabled={saving}
-                    className="rounded-xl bg-[var(--primary)] px-6 py-3 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-xl bg-[var(--primary)] px-6 py-3 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {saving ? "Saving..." : "Save Changes"}
                   </button>
@@ -2469,25 +2767,26 @@ function Dashboard() {
                     type="button"
                     onClick={handleCancelEdit}
                     disabled={saving}
-                    className="rounded-xl border border-[var(--border)] px-6 py-3 text-sm font-bold text-[var(--text-heading)] transition hover:border-[var(--primary)] hover:text-[var(--primary)] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-xl border border-[var(--border)] px-6 py-3 text-sm font-bold text-[var(--text-heading)] transition hover:border-[var(--primary)] hover:text-[var(--primary)]"
                   >
                     Cancel
                   </button>
 
                   {saveMessage && (
-
                     <p
                       role="status"
                       aria-live="polite"
                       className={`text-sm font-semibold ${
-                        saveMessage.includes("successfully")
+                        saveMessage.includes("successfully") ||
+                        saveMessage.includes("adjusted") ||
+                        saveMessage.includes("cropped") ||
+                        saveMessage.includes("Processing")
                           ? "text-[var(--primary)]"
                           : "text-red-500"
                       }`}
                     >
                       {saveMessage}
                     </p>
-
                   )}
 
                 </div>
@@ -2520,22 +2819,18 @@ function Dashboard() {
                     value: fullName,
                   },
                 ].map((item) => (
-
                   <div
                     key={item.label}
-                    className="group rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5 transition duration-200 hover:-translate-y-0.5 hover:border-[var(--primary)]/30"
+                    className="group rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5 transition hover:border-[var(--primary)]/30"
                   >
-
                     <p className="text-[9px] font-extrabold uppercase tracking-[0.15em] opacity-45">
                       {item.label}
                     </p>
 
-                    <p className="mt-2 break-words text-sm font-bold text-[var(--text-heading)] transition group-hover:text-[var(--primary)]">
+                    <p className="mt-2 break-words text-sm font-bold text-[var(--text-heading)]">
                       {item.value}
                     </p>
-
                   </div>
-
                 ))}
 
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5 sm:col-span-2">
@@ -2549,21 +2844,16 @@ function Dashboard() {
                   </p>
 
                 </div>
-
               </div>
 
               {saveMessage && (
-
                 <p className="mt-5 rounded-xl bg-[var(--primary-soft)] px-4 py-3 text-sm font-semibold text-[var(--primary)]">
                   ✓ {saveMessage}
                 </p>
-
               )}
 
             </div>
-
           )}
-
         </section>
 
         {/* ===================================================
@@ -2573,8 +2863,6 @@ function Dashboard() {
         <section className="relative mt-12 overflow-hidden rounded-[2.25rem] border border-[var(--primary)]/20 bg-[var(--surface)] shadow-xl">
 
           <div className="absolute inset-0 bg-[var(--primary-soft)] opacity-25" />
-
-          <div className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[var(--primary-soft)] blur-3xl" />
 
           <div className="relative px-6 py-10 text-center sm:px-10 sm:py-12">
 
@@ -2598,7 +2886,7 @@ function Dashboard() {
 
               <Link
                 to="/career"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-6 py-3 text-sm font-bold !text-white shadow-lg transition hover:-translate-y-1 hover:bg-[var(--primary-hover)] hover:shadow-xl"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-6 py-3 text-sm font-bold !text-white shadow-lg transition hover:-translate-y-1"
               >
                 Explore Career
                 <span>→</span>
@@ -2633,52 +2921,32 @@ function Dashboard() {
                 to="/skills"
                 className="rounded-xl bg-[var(--bg)] px-3 py-4 text-center text-xs font-bold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
               >
-                <span className="text-lg">
-                  🎯
-                </span>
-
-                <span className="mt-1.5 block">
-                  Skills
-                </span>
+                <span className="text-lg">🎯</span>
+                <span className="mt-1.5 block">Skills</span>
               </Link>
 
               <Link
                 to="/resources"
                 className="rounded-xl bg-[var(--bg)] px-3 py-4 text-center text-xs font-bold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
               >
-                <span className="text-lg">
-                  📚
-                </span>
-
-                <span className="mt-1.5 block">
-                  Resources
-                </span>
+                <span className="text-lg">📚</span>
+                <span className="mt-1.5 block">Resources</span>
               </Link>
 
               <Link
                 to="/career"
                 className="rounded-xl bg-[var(--bg)] px-3 py-4 text-center text-xs font-bold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
               >
-                <span className="text-lg">
-                  🚀
-                </span>
-
-                <span className="mt-1.5 block">
-                  Career
-                </span>
+                <span className="text-lg">🚀</span>
+                <span className="mt-1.5 block">Career</span>
               </Link>
 
               <Link
                 to="/opportunities"
                 className="rounded-xl bg-[var(--bg)] px-3 py-4 text-center text-xs font-bold transition hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]"
               >
-                <span className="text-lg">
-                  💼
-                </span>
-
-                <span className="mt-1.5 block">
-                  Opportunities
-                </span>
+                <span className="text-lg">💼</span>
+                <span className="mt-1.5 block">Opportunities</span>
               </Link>
 
             </div>
@@ -2691,12 +2959,12 @@ function Dashboard() {
           FOOTER
       ====================================================== */}
 
-      {/* =========================
-          Footer
-      ========================== */}
-      <footer className="mt-6 border-t border-slate-200 bg-white dark:border-[var(--border)] dark:bg-[var(--surface)]">
+      <footer className="mt-6 border-t border-[var(--border)] bg-[var(--surface)]">
+
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-8 text-center sm:flex-row sm:px-6 lg:px-8">
+
           <div>
+
             <p className="text-sm font-bold text-[var(--text-heading)]">
               Skill<span className="text-[var(--primary)]">Bridge</span>
             </p>
@@ -2704,13 +2972,380 @@ function Dashboard() {
             <p className="mt-1 text-xs">
               Keep learning, keep growing.
             </p>
+
           </div>
 
           <p className="text-xs font-medium">
             © {new Date().getFullYear()} SkillBridge. All rights reserved.
           </p>
+
         </div>
       </footer>
+
+      {/* =====================================================
+          CAREER SELECTOR MODAL
+      ====================================================== */}
+
+      {careerSelectorOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+
+          <div className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] shadow-2xl">
+
+            <div className="flex items-start justify-between border-b border-[var(--border)] p-6">
+
+              <div>
+
+                <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
+                  Career Selection
+                </p>
+
+                <h2 className="mt-1 text-xl font-black text-[var(--text-heading)]">
+                  Choose your career path
+                </h2>
+
+                <p className="mt-2 text-xs opacity-60">
+                  Select a recommended career to continue your preparation.
+                </p>
+
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setCareerSelectorOpen(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] text-sm font-bold transition hover:border-[var(--primary)] hover:text-[var(--primary)]"
+              >
+                ✕
+              </button>
+
+            </div>
+
+            <div className="max-h-[60vh] overflow-y-auto p-5">
+
+              {careerData.recommendations.length > 0 ? (
+
+                <div className="space-y-3">
+
+                  {careerData.recommendations.map((career, index) => {
+
+                    const isSelected =
+                      selectedCareer === career;
+
+                    return (
+                      <button
+                        key={`${career.id ?? index}-${getCareerName(career)}`}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCareer(career);
+                          setCareerSelectorOpen(false);
+                        }}
+                        className={`w-full rounded-2xl border p-4 text-left transition ${
+                          isSelected
+                            ? "border-[var(--primary)] bg-[var(--primary-soft)]"
+                            : "border-[var(--border)] bg-[var(--bg)] hover:border-[var(--primary)]/50"
+                        }`}
+                      >
+
+                        <div className="flex items-center gap-4">
+
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--primary-soft)]">
+                            {index === 0 ? "🚀" : "💼"}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+
+                            <h3 className="truncate text-sm font-extrabold text-[var(--text-heading)]">
+                              {getCareerName(career)}
+                            </h3>
+
+                            <div className="mt-2 flex flex-wrap gap-2">
+
+                              <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-[9px] font-bold text-[var(--primary)]">
+                                {getCareerScore(career)}% Match
+                              </span>
+
+                              <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-[9px] font-bold">
+                                {getCareerDemand(career)}
+                              </span>
+
+                            </div>
+                          </div>
+
+                          <div className="shrink-0">
+
+                            {isSelected ? (
+                              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--primary)] text-sm font-black text-white">
+                                ✓
+                              </span>
+                            ) : (
+                              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] text-xs opacity-50">
+                                →
+                              </span>
+                            )}
+
+                          </div>
+
+                        </div>
+                      </button>
+                    );
+                  })}
+
+                </div>
+
+              ) : (
+
+                <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg)] p-8 text-center">
+
+                  <div className="text-3xl">🎯</div>
+
+                  <p className="mt-3 text-sm font-bold text-[var(--text-heading)]">
+                    No career recommendations yet
+                  </p>
+
+                  <p className="mt-2 text-xs opacity-60">
+                    Add more skills to your profile to generate career recommendations.
+                  </p>
+
+                  <Link
+                    to="/skills"
+                    onClick={() => setCareerSelectorOpen(false)}
+                    className="mt-5 inline-flex rounded-xl bg-[var(--primary)] px-5 py-2.5 text-xs font-bold text-white"
+                  >
+                    Add Skills
+                  </Link>
+
+                </div>
+              )}
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================
+          IMAGE CROP / ADJUST MODAL
+      ====================================================== */}
+
+      {cropOpen && cropImage && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+
+          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] shadow-2xl">
+
+            <div className="flex items-start justify-between border-b border-[var(--border)] p-6">
+
+              <div>
+
+                <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-[var(--primary)]">
+                  Profile Picture
+                </p>
+
+                <h2 className="mt-1 text-xl font-black text-[var(--text-heading)]">
+                  Crop & Adjust Image
+                </h2>
+
+                <p className="mt-2 text-xs opacity-60">
+                  Adjust the zoom and position before saving your profile picture.
+                </p>
+
+              </div>
+
+              <button
+                type="button"
+                onClick={handleCloseCrop}
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] text-sm font-bold transition hover:border-[var(--primary)] hover:text-[var(--primary)]"
+              >
+                ✕
+              </button>
+
+            </div>
+
+            <div className="p-6 sm:p-8">
+
+              {/* CROP PREVIEW */}
+
+              <div className="mx-auto flex aspect-square w-full max-w-[360px] items-center justify-center overflow-hidden rounded-[2rem] border border-[var(--border)] bg-black/10 shadow-inner">
+
+                <div className="relative h-full w-full overflow-hidden rounded-[2rem]">
+
+                  <img
+                    src={cropImage}
+                    alt="Crop preview"
+                    className="absolute left-1/2 top-1/2 max-w-none select-none"
+                    style={{
+                      width: `${100 * cropSettings.zoom}%`,
+                      height: `${100 * cropSettings.zoom}%`,
+                      transform: `translate(
+                        calc(-50% + ${cropSettings.offsetX}%),
+                        calc(-50% + ${cropSettings.offsetY}%)
+                      )`,
+                      objectFit: "cover",
+                    }}
+                    draggable={false}
+                  />
+
+                  <div className="pointer-events-none absolute inset-0 rounded-[2rem] ring-2 ring-white/60" />
+
+                  <div className="pointer-events-none absolute inset-[12%] rounded-full border-2 border-white/60" />
+
+                </div>
+              </div>
+
+              {/* ZOOM */}
+
+              <div className="mx-auto mt-7 max-w-md">
+
+                <div className="flex items-center justify-between">
+
+                  <label
+                    htmlFor="image-zoom"
+                    className="text-xs font-bold text-[var(--text-heading)]"
+                  >
+                    Zoom
+                  </label>
+
+                  <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1 text-[9px] font-bold text-[var(--primary)]">
+                    {cropSettings.zoom.toFixed(1)}x
+                  </span>
+
+                </div>
+
+                <input
+                  id="image-zoom"
+                  type="range"
+                  min="1"
+                  max="3"
+                  step="0.1"
+                  value={cropSettings.zoom}
+                  onChange={(e) =>
+                    setCropSettings((current) => ({
+                      ...current,
+                      zoom: Number(e.target.value),
+                    }))
+                  }
+                  className="mt-3 w-full accent-[var(--primary)]"
+                />
+
+              </div>
+
+              {/* HORIZONTAL */}
+
+              <div className="mx-auto mt-5 max-w-md">
+
+                <div className="flex items-center justify-between">
+
+                  <label
+                    htmlFor="image-horizontal"
+                    className="text-xs font-bold text-[var(--text-heading)]"
+                  >
+                    Horizontal Position
+                  </label>
+
+                  <span className="text-[9px] opacity-50">
+                    Adjust
+                  </span>
+
+                </div>
+
+                <input
+                  id="image-horizontal"
+                  type="range"
+                  min="-25"
+                  max="25"
+                  step="1"
+                  value={cropSettings.offsetX}
+                  onChange={(e) =>
+                    setCropSettings((current) => ({
+                      ...current,
+                      offsetX: Number(e.target.value),
+                    }))
+                  }
+                  className="mt-3 w-full accent-[var(--primary)]"
+                />
+
+              </div>
+
+              {/* VERTICAL */}
+
+              <div className="mx-auto mt-5 max-w-md">
+
+                <div className="flex items-center justify-between">
+
+                  <label
+                    htmlFor="image-vertical"
+                    className="text-xs font-bold text-[var(--text-heading)]"
+                  >
+                    Vertical Position
+                  </label>
+
+                  <span className="text-[9px] opacity-50">
+                    Adjust
+                  </span>
+
+                </div>
+
+                <input
+                  id="image-vertical"
+                  type="range"
+                  min="-25"
+                  max="25"
+                  step="1"
+                  value={cropSettings.offsetY}
+                  onChange={(e) =>
+                    setCropSettings((current) => ({
+                      ...current,
+                      offsetY: Number(e.target.value),
+                    }))
+                  }
+                  className="mt-3 w-full accent-[var(--primary)]"
+                />
+
+              </div>
+
+              {/* ACTIONS */}
+
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-end">
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCropSettings({
+                      zoom: 1,
+                      offsetX: 0,
+                      offsetY: 0,
+                    })
+                  }
+                  className="rounded-xl border border-[var(--border)] px-5 py-3 text-sm font-bold text-[var(--text-heading)] transition hover:border-[var(--primary)] hover:text-[var(--primary)]"
+                >
+                  Reset
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCloseCrop}
+                  className="rounded-xl border border-[var(--border)] px-5 py-3 text-sm font-bold text-[var(--text-heading)] transition hover:border-[var(--primary)] hover:text-[var(--primary)]"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleApplyCrop}
+                  className="rounded-xl bg-[var(--primary)] px-6 py-3 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--primary-hover)]"
+                >
+                  Apply Crop
+                </button>
+
+              </div>
+
+              <canvas
+                ref={cropCanvasRef}
+                className="hidden"
+              />
+
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

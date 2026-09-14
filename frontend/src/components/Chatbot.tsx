@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Bot,
-  MessageCircle,
+  
   Send,
   X,
   Loader2,

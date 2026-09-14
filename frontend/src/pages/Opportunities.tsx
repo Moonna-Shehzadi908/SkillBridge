@@ -1,17 +1,19 @@
-
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
+  BookOpen,
   Briefcase,
   Building2,
   CalendarDays,
+  CheckCircle2,
   ExternalLink,
   MapPin,
   RefreshCw,
   Search,
   Sparkles,
   Target,
+  X,
 } from "lucide-react";
 import ThemeToggle from "../components/ThemeToggle";
 
@@ -157,8 +159,12 @@ function Opportunities() {
   const [remoteOnly, setRemoteOnly] =
     useState(false);
 
+  const [selectedOpportunity, setSelectedOpportunity] =
+    useState<Opportunity | null>(null);
+
   const [loading, setLoading] =
     useState(true);
+
   const [skillsLoading, setSkillsLoading] =
     useState(true);
 
@@ -891,18 +897,19 @@ function Opportunities() {
 
                       {/* CTA */}
                       <div className="mt-6 flex gap-3">
-                        <a
-                          href={opportunity.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSelectedOpportunity(
+                              opportunity,
+                            )
+                          }
                           className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
                         >
                           View Opportunity
 
-                          <ExternalLink
-                            size={16}
-                          />
-                        </a>
+                          <Briefcase size={16} />
+                        </button>
                       </div>
                     </article>
                   );
@@ -929,9 +936,9 @@ function Opportunities() {
               </h2>
 
               <p className="mt-2 max-w-2xl text-sm leading-6 text-purple-100">
-                Improve your skills and keep your profile
-                updated. Better skills mean better
-                opportunity matches.
+                Improve your skills and keep your
+                profile updated. Better skills mean
+                better opportunity matches.
               </p>
             </div>
 
@@ -953,7 +960,7 @@ function Opportunities() {
           </div>
         </section>
       </main>
-      
+
       {/* =========================
           Footer
       ========================== */}
@@ -961,7 +968,9 @@ function Opportunities() {
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-8 text-center sm:flex-row sm:px-6 lg:px-8">
           <div>
             <p className="text-sm font-bold text-[var(--text-heading)]">
-              Skill<span className="text-[var(--primary)]">Bridge</span>
+              Skill<span className="text-[var(--primary)]">
+                Bridge
+              </span>
             </p>
 
             <p className="mt-1 text-xs">
@@ -970,10 +979,297 @@ function Opportunities() {
           </div>
 
           <p className="text-xs font-medium">
-            © {new Date().getFullYear()} SkillBridge. All rights reserved.
+            © {new Date().getFullYear()} SkillBridge. All
+            rights reserved.
           </p>
         </div>
       </footer>
+
+      {/* =========================
+          Opportunity Details Modal
+      ========================== */}
+      {selectedOpportunity && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={() =>
+            setSelectedOpportunity(null)
+          }
+        >
+          <div
+            className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+            {/* Modal Header */}
+            <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface)] px-5 py-5 sm:px-7">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-purple-500/10 text-[var(--primary)]">
+                    <Briefcase size={23} />
+                  </div>
+
+                  <div className="min-w-0">
+                    <h2 className="text-xl font-bold text-[var(--text-heading)] sm:text-2xl">
+                      {selectedOpportunity.title}
+                    </h2>
+
+                    <p className="mt-1 flex items-center gap-1.5 text-sm text-[var(--text)]">
+                      <Building2 size={15} />
+                      {selectedOpportunity.company}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedOpportunity(null)
+                  }
+                  className="shrink-0 rounded-xl p-2 text-[var(--text)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--text-heading)]"
+                  aria-label="Close opportunity details"
+                >
+                  <X size={21} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="space-y-6 p-5 sm:p-7">
+              {/* Badges */}
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--text)]">
+                  {selectedOpportunity.opportunity_type_display ||
+                    selectedOpportunity.opportunity_type}
+                </span>
+
+                {selectedOpportunity.is_remote && (
+                  <span className="rounded-full bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                    Remote
+                  </span>
+                )}
+
+                {selectedOpportunity.skill_name && (
+                  <span className="rounded-full bg-purple-500/10 px-3 py-1.5 text-xs font-semibold text-[var(--primary)]">
+                    {selectedOpportunity.skill_name}
+                  </span>
+                )}
+
+                {selectedOpportunity.match_score !==
+                  undefined && (
+                  <span
+                    className={`rounded-full px-3 py-1.5 text-xs font-bold ${getMatchClasses(
+                      selectedOpportunity.match_score,
+                    )}`}
+                  >
+                    {selectedOpportunity.match_score}% Match
+                  </span>
+                )}
+              </div>
+
+              {/* Quick Information */}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                  <div className="flex items-center gap-2 text-[var(--text)]">
+                    <MapPin size={17} />
+
+                    <span className="text-xs font-medium">
+                      Location
+                    </span>
+                  </div>
+
+                  <p className="mt-2 font-semibold text-[var(--text-heading)]">
+                    {selectedOpportunity.location ||
+                      "Location not specified"}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                  <div className="flex items-center gap-2 text-[var(--text)]">
+                    <CalendarDays size={17} />
+
+                    <span className="text-xs font-medium">
+                      Deadline
+                    </span>
+                  </div>
+
+                  <p className="mt-2 font-semibold text-[var(--text-heading)]">
+                    {formatDeadline(
+                      selectedOpportunity.deadline,
+                    )}
+                  </p>
+
+                  {getDaysRemaining(
+                    selectedOpportunity.deadline,
+                  ) !== null &&
+                    getDaysRemaining(
+                      selectedOpportunity.deadline,
+                    )! >= 0 && (
+                      <p className="mt-1 text-xs font-medium text-amber-600 dark:text-amber-400">
+                        {
+                          getDaysRemaining(
+                            selectedOpportunity.deadline,
+                          )
+                        }{" "}
+                        {getDaysRemaining(
+                          selectedOpportunity.deadline,
+                        ) === 1
+                          ? "day"
+                          : "days"}{" "}
+                        remaining
+                      </p>
+                    )}
+
+                  {getDaysRemaining(
+                    selectedOpportunity.deadline,
+                  ) !== null &&
+                    getDaysRemaining(
+                      selectedOpportunity.deadline,
+                    )! < 0 && (
+                      <p className="mt-1 text-xs font-medium text-red-600 dark:text-red-400">
+                        Deadline has passed
+                      </p>
+                    )}
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <h3 className="text-base font-bold text-[var(--text-heading)]">
+                  About this opportunity
+                </h3>
+
+                <p className="mt-2 text-sm leading-7 text-[var(--text)]">
+                  {selectedOpportunity.description ||
+                    "Explore this opportunity and see whether it matches your career goals."}
+                </p>
+              </div>
+
+              {/* Skill Match */}
+              <div className="rounded-2xl border border-purple-500/15 bg-purple-500/5 p-5">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-xl bg-purple-500/10 p-2 text-[var(--primary)]">
+                    <Target size={19} />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold text-[var(--text-heading)]">
+                      Why this opportunity matches you
+                    </h3>
+
+                    {selectedOpportunity.match_reason ? (
+                      <p className="mt-2 text-sm leading-6 text-[var(--text)]">
+                        {
+                          selectedOpportunity.match_reason
+                        }
+                      </p>
+                    ) : (
+                      <p className="mt-2 text-sm leading-6 text-[var(--text)]">
+                        This opportunity is matched
+                        with the skills in your
+                        SkillBridge profile.
+                      </p>
+                    )}
+
+                    {selectedOpportunity.skill_name && (
+                      <div className="mt-4 flex items-center gap-2">
+                        <CheckCircle2
+                          size={17}
+                          className="text-emerald-600 dark:text-emerald-400"
+                        />
+
+                        <span className="text-sm font-medium text-[var(--text-heading)]">
+                          Your skill:{" "}
+                          <span className="text-[var(--primary)]">
+                            {
+                              selectedOpportunity.skill_name
+                            }
+                          </span>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Prepare Section */}
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-5">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-xl bg-blue-500/10 p-2 text-blue-600 dark:text-blue-400">
+                    <BookOpen size={19} />
+                  </div>
+
+                  <div>
+                    <h3 className="font-bold text-[var(--text-heading)]">
+                      Prepare for this opportunity
+                    </h3>
+
+                    <p className="mt-1 text-sm leading-6 text-[var(--text)]">
+                      Strengthen your skills and
+                      explore learning resources
+                      before applying.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedOpportunity(null);
+                      navigate("/skills");
+                    }}
+                    className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm font-semibold text-[var(--text-heading)] transition hover:bg-[var(--surface-soft)]"
+                  >
+                    Improve Skills
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedOpportunity(null);
+                      navigate("/resources");
+                    }}
+                    className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm font-semibold text-[var(--text-heading)] transition hover:bg-[var(--surface-soft)]"
+                  >
+                    Learning Resources
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-3 border-t border-[var(--border)] pt-5 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedOpportunity(null)
+                  }
+                  className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-3 text-sm font-semibold text-[var(--text-heading)] transition hover:bg-[var(--surface-soft)]"
+                >
+                  Close
+                </button>
+
+                {selectedOpportunity.url &&
+                  !selectedOpportunity.url.includes(
+                    "example.com",
+                  ) && (
+                    <a
+                      href={
+                        selectedOpportunity.url
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--primary-hover)]"
+                    >
+                      Apply Now
+                      <ExternalLink size={16} />
+                    </a>
+                  )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -34,7 +34,11 @@ interface Resource {
   title: string;
   description: string;
   url: string;
-  resource_type: "article" | "video" | "course" | "documentation";
+  resource_type:
+    | "article"
+    | "video"
+    | "course"
+    | "documentation";
   resource_type_display?: string;
   skill: number;
   skill_name: string;
@@ -176,6 +180,10 @@ export default function Career() {
   const [mySkills, setMySkills] = useState<UserSkill[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
 
+  // Selected career for the user's SkillBridge journey
+  const [selectedCareer, setSelectedCareer] =
+    useState<Career | null>(null);
+
   const [careerSearch, setCareerSearch] = useState("");
   const [demandFilter, setDemandFilter] =
     useState<"ALL" | Career["demand_level"]>("ALL");
@@ -184,17 +192,21 @@ export default function Career() {
     useState<"title" | "demand">("title");
 
   const [loading, setLoading] = useState(true);
-  const [mySkillsLoading, setMySkillsLoading] = useState(false);
+  const [mySkillsLoading, setMySkillsLoading] =
+    useState(false);
   const [aiLoading, setAiLoading] = useState(false);
-  const [resourcesLoading, setResourcesLoading] = useState(false);
+  const [resourcesLoading, setResourcesLoading] =
+    useState(false);
 
   const [error, setError] = useState("");
   const [aiError, setAiError] = useState("");
-  const [resourcesError, setResourcesError] = useState("");
+  const [resourcesError, setResourcesError] =
+    useState("");
 
   const [aiHasRun, setAiHasRun] = useState(false);
 
-  const accessToken = localStorage.getItem("access_token");
+  const accessToken =
+    localStorage.getItem("access_token");
 
   const authHeaders = useMemo(
     () => ({
@@ -215,9 +227,12 @@ export default function Career() {
       setLoading(true);
       setError("");
 
-      const response = await fetch(`${API_URL}/api/career/`, {
-        headers: authHeaders,
-      });
+      const response = await fetch(
+        `${API_URL}/api/career/`,
+        {
+          headers: authHeaders,
+        }
+      );
 
       if (response.status === 401) {
         handleUnauthorized();
@@ -225,7 +240,9 @@ export default function Career() {
       }
 
       if (!response.ok) {
-        throw new Error("Unable to load career paths.");
+        throw new Error(
+          "Unable to load career paths."
+        );
       }
 
       const data = await response.json();
@@ -233,7 +250,9 @@ export default function Career() {
       setCareers(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Career fetch error:", err);
-      setError("Unable to load career paths right now.");
+      setError(
+        "Unable to load career paths right now."
+      );
     } finally {
       setLoading(false);
     }
@@ -253,7 +272,9 @@ export default function Career() {
     }
 
     if (!response.ok) {
-      throw new Error("Unable to load your saved skills.");
+      throw new Error(
+        "Unable to load your saved skills."
+      );
     }
 
     const data = await response.json();
@@ -288,7 +309,10 @@ export default function Career() {
 
       setResources(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error("Resources fetch error:", err);
+      console.error(
+        "Resources fetch error:",
+        err
+      );
 
       setResourcesError(
         "Learning resources are temporarily unavailable."
@@ -401,7 +425,8 @@ export default function Career() {
    * - Skill Gap
    * - Mock Interview
    */
-  const roadmapCareer = aiResults[0] ?? null;
+  const roadmapCareer =
+    aiResults[0] ?? null;
 
   const roadmapGap = useMemo(() => {
     if (!roadmapCareer) {
@@ -492,7 +517,8 @@ export default function Career() {
   const topAIMatches = aiResults.slice(0, 3);
 
   const filteredCareers = useMemo(() => {
-    const query = careerSearch.trim().toLowerCase();
+    const query =
+      careerSearch.trim().toLowerCase();
 
     return [...careers]
       .filter((career) => {
@@ -505,24 +531,33 @@ export default function Career() {
             .toLowerCase()
             .includes(query) ||
           career.required_skills.some((skill) =>
-            skill.toLowerCase().includes(query)
+            skill
+              .toLowerCase()
+              .includes(query)
           );
 
         const matchesDemand =
           demandFilter === "ALL" ||
-          career.demand_level === demandFilter;
+          career.demand_level ===
+            demandFilter;
 
         return matchesSearch && matchesDemand;
       })
       .sort((a, b) => {
         if (careerSort === "demand") {
           return (
-            getDemandRank(b.demand_level) -
-            getDemandRank(a.demand_level)
+            getDemandRank(
+              b.demand_level
+            ) -
+            getDemandRank(
+              a.demand_level
+            )
           );
         }
 
-        return a.title.localeCompare(b.title);
+        return a.title.localeCompare(
+          b.title
+        );
       });
   }, [
     careers,
@@ -545,6 +580,16 @@ export default function Career() {
       total / aiResults.length
     );
   }, [aiResults]);
+
+  /*
+   * Select a career and keep it as the active
+   * SkillBridge career journey.
+   */
+  const handleSelectCareer = (
+    career: Career
+  ) => {
+    setSelectedCareer(career);
+  };
 
   return (
     <div className="career-page">
@@ -718,9 +763,6 @@ export default function Career() {
           color: var(--primary);
         }
 
-        /*
-         * Mock Interview action
-         */
         .mock-test-button {
           color: var(--primary);
           background: var(--surface);
@@ -1044,6 +1086,80 @@ export default function Career() {
           transform: translateY(-4px);
           border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
           box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+        }
+
+        /* Selected career state */
+        .career-card.selected-career {
+          border-color: var(--primary);
+          box-shadow:
+            0 0 0 3px color-mix(
+              in srgb,
+              var(--primary) 12%,
+              transparent
+            ),
+            0 20px 45px rgba(99, 102, 241, 0.12);
+          transform: translateY(-3px);
+        }
+
+        .career-card.selected-career::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          pointer-events: none;
+          background: linear-gradient(
+            135deg,
+            color-mix(in srgb, var(--primary) 5%, transparent),
+            transparent 55%
+          );
+        }
+
+        .selected-badge {
+          position: absolute;
+          top: 14px;
+          right: 14px;
+          z-index: 5;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 6px 9px;
+          border-radius: 999px;
+          background: rgba(16, 185, 129, 0.12);
+          color: #059669;
+          border: 1px solid rgba(16, 185, 129, 0.2);
+          font-size: 0.68rem;
+          font-weight: 900;
+        }
+
+        .select-career-button {
+          border: 0;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 11px;
+          border-radius: 10px;
+          background: var(--primary-soft);
+          color: var(--primary);
+          font-size: 0.76rem;
+          font-weight: 850;
+          transition: 0.2s ease;
+        }
+
+        .select-career-button:hover {
+          color: white;
+          background: var(--primary);
+        }
+
+        .select-career-button.selected {
+          background: rgba(16, 185, 129, 0.11);
+          color: #059669;
+          border: 1px solid rgba(16, 185, 129, 0.18);
+        }
+
+        .select-career-button.selected:hover {
+          background: rgba(16, 185, 129, 0.16);
+          color: #047857;
         }
 
         .featured-career::before {
@@ -1469,6 +1585,178 @@ export default function Career() {
 
         .gap-action:hover {
           text-decoration: underline;
+        }
+
+        /* Selected career journey */
+        .selected-career-panel {
+          margin-top: 24px;
+          padding: 27px;
+          border: 1px solid color-mix(
+            in srgb,
+            var(--primary) 48%,
+            var(--border)
+          );
+          border-radius: 25px;
+          background:
+            radial-gradient(
+              circle at 100% 0%,
+              color-mix(in srgb, var(--primary) 11%, transparent),
+              transparent 32%
+            ),
+            linear-gradient(
+              145deg,
+              color-mix(in srgb, var(--primary-soft) 60%, var(--surface)),
+              var(--surface)
+            );
+          box-shadow: 0 20px 55px rgba(99, 102, 241, 0.09);
+        }
+
+        .selected-career-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 20px;
+        }
+
+        .selected-career-title-wrap {
+          display: flex;
+          align-items: flex-start;
+          gap: 14px;
+        }
+
+        .selected-career-icon {
+          width: 48px;
+          height: 48px;
+          flex: 0 0 auto;
+          display: grid;
+          place-items: center;
+          border-radius: 14px;
+          background: linear-gradient(
+            135deg,
+            var(--primary),
+            #8b5cf6
+          );
+          color: white;
+          box-shadow: 0 12px 28px rgba(99, 102, 241, 0.2);
+        }
+
+        .selected-career-kicker {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          color: #059669;
+          font-size: 0.7rem;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 0.07em;
+          margin-bottom: 5px;
+        }
+
+        .selected-career-header h3 {
+          margin: 0;
+          color: var(--text-heading);
+          font-size: 1.45rem;
+          font-weight: 900;
+        }
+
+        .selected-career-header p {
+          margin: 6px 0 0;
+          max-width: 700px;
+          line-height: 1.7;
+          opacity: 0.7;
+          font-size: 0.86rem;
+        }
+
+        .selected-career-close {
+          width: 34px;
+          height: 34px;
+          flex: 0 0 auto;
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          background: var(--surface);
+          color: var(--text);
+          cursor: pointer;
+          font-size: 1.25rem;
+          line-height: 1;
+          transition: 0.2s ease;
+        }
+
+        .selected-career-close:hover {
+          color: var(--primary);
+          border-color: var(--primary);
+        }
+
+        .selected-career-stats {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 12px;
+          margin: 22px 0;
+        }
+
+        .selected-career-stat {
+          padding: 14px 15px;
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          background: color-mix(
+            in srgb,
+            var(--surface) 88%,
+            transparent
+          );
+        }
+
+        .selected-career-stat strong {
+          display: block;
+          color: var(--primary);
+          font-size: 1.2rem;
+          font-weight: 900;
+        }
+
+        .selected-career-stat span {
+          display: block;
+          margin-top: 3px;
+          font-size: 0.7rem;
+          opacity: 0.62;
+        }
+
+        .selected-career-gap {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          padding: 13px 15px;
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          background: var(--surface);
+          margin-bottom: 18px;
+        }
+
+        .selected-career-gap svg {
+          color: var(--primary);
+          flex: 0 0 auto;
+        }
+
+        .selected-career-gap strong {
+          display: block;
+          color: var(--text-heading);
+          font-size: 0.76rem;
+        }
+
+        .selected-career-gap span {
+          display: block;
+          margin-top: 2px;
+          font-size: 0.7rem;
+          opacity: 0.62;
+        }
+
+        .selected-career-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        .selected-career-actions .primary-button,
+        .selected-career-actions .secondary-button,
+        .selected-career-actions .mock-test-button {
+          min-height: 44px;
         }
 
         .empty-state,
@@ -2040,14 +2328,16 @@ export default function Career() {
           .results-grid,
           .loading-grid,
           .ai-summary,
-          .resource-list {
+          .resource-list,
+          .selected-career-stats {
             grid-template-columns: 1fr;
           }
 
           .ai-panel-top,
           .section-heading,
           .cta,
-          .roadmap-header {
+          .roadmap-header,
+          .selected-career-header {
             flex-direction: column;
             align-items: flex-start;
           }
@@ -2132,6 +2422,21 @@ export default function Career() {
             flex: 1 1 100%;
             width: 100%;
           }
+
+          .selected-career-actions {
+            width: 100%;
+            flex-direction: column;
+          }
+
+          .selected-career-actions .primary-button,
+          .selected-career-actions .secondary-button,
+          .selected-career-actions .mock-test-button {
+            width: 100%;
+          }
+
+          .selected-career-header h3 {
+            font-size: 1.25rem;
+          }
         }
       `}</style>
 
@@ -2191,7 +2496,6 @@ export default function Career() {
               </p>
 
               <div className="hero-actions">
-                {/* Career Match */}
                 <button
                   type="button"
                   className="primary-button"
@@ -2216,7 +2520,6 @@ export default function Career() {
                   )}
                 </button>
 
-                {/* Mock Interview / Mock Test */}
                 {roadmapCareer ? (
                   <Link
                     to="/mock-interview"
@@ -2563,19 +2866,41 @@ export default function Career() {
                       const gap =
                         getSkillGap(career);
 
+                      const isSelected =
+                        selectedCareer?.id ===
+                        career.id;
+
                       return (
                         <article
                           className={`career-card featured-career ${
                             getScoreClass(score)
+                          } ${
+                            isSelected
+                              ? "selected-career"
+                              : ""
                           }`}
                           key={career.id}
                         >
+                          {isSelected && (
+                            <div className="selected-badge">
+                              <CheckCircle2
+                                size={12}
+                              />
+                              Selected
+                            </div>
+                          )}
+
                           <div className="career-rank">
                             <span>
-                              #{topAIMatches.indexOf(career) + 1}
+                              #
+                              {topAIMatches.indexOf(
+                                career
+                              ) + 1}
                             </span>
 
-                            {topAIMatches.indexOf(career) === 0 && (
+                            {topAIMatches.indexOf(
+                              career
+                            ) === 0 && (
                               <>
                                 <Sparkles size={12} />
                                 Top match
@@ -2747,31 +3072,35 @@ export default function Career() {
                               <ArrowRight size={14} />
                             </Link>
 
-                            {career.career_url ? (
-                              <a
-                                href={
-                                  career.career_url
-                                }
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="card-link"
-                              >
-                                Explore Career
-                                <ArrowRight
-                                  size={14}
-                                />
-                              </a>
-                            ) : (
-                              <span
-                                style={{
-                                  fontSize:
-                                    "0.75rem",
-                                  opacity: 0.5,
-                                }}
-                              >
-                                Career details
-                              </span>
-                            )}
+                            <button
+                              type="button"
+                              className={`select-career-button ${
+                                isSelected
+                                  ? "selected"
+                                  : ""
+                              }`}
+                              onClick={() =>
+                                handleSelectCareer(
+                                  career
+                                )
+                              }
+                            >
+                              {isSelected ? (
+                                <>
+                                  <CheckCircle2
+                                    size={14}
+                                  />
+                                  Selected
+                                </>
+                              ) : (
+                                <>
+                                  Select Career
+                                  <ArrowRight
+                                    size={14}
+                                  />
+                                </>
+                              )}
+                            </button>
                           </div>
                         </article>
                       );
@@ -3043,6 +3372,10 @@ export default function Career() {
 
                                     <Link
                                       to="/resources"
+                                      state={{
+                                        career:
+                                          roadmapCareer,
+                                      }}
                                       className="browse-resources"
                                     >
                                       Browse Resources
@@ -3084,6 +3417,9 @@ export default function Career() {
                     >
                       <Link
                         to="/resources"
+                        state={{
+                          career: roadmapCareer,
+                        }}
                         className="secondary-button"
                       >
                         Explore All Resources
@@ -3093,6 +3429,178 @@ export default function Career() {
                   </div>
                 </section>
               )}
+
+            {/* Selected Career Journey */}
+            {selectedCareer && (
+              <section className="selected-career-panel">
+                <div className="selected-career-header">
+                  <div className="selected-career-title-wrap">
+                    <div className="selected-career-icon">
+                      <CheckCircle2 size={23} />
+                    </div>
+
+                    <div>
+                      <div className="selected-career-kicker">
+                        <CheckCircle2 size={13} />
+                        Career Selected
+                      </div>
+
+                      <h3>
+                        {selectedCareer.title}
+                      </h3>
+
+                      <p>
+                        You selected this career based on your
+                        current SkillBridge skills. Continue your
+                        journey by checking your skill gap, learning
+                        the required skills, or testing your knowledge.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="selected-career-close"
+                    onClick={() =>
+                      setSelectedCareer(null)
+                    }
+                    aria-label="Clear selected career"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                {(() => {
+                  const selectedGap =
+                    getSkillGap(
+                      selectedCareer
+                    );
+
+                  return (
+                    <>
+                      <div className="selected-career-stats">
+                        <div className="selected-career-stat">
+                          <strong>
+                            {
+                              selectedCareer
+                                .required_skills
+                                .length
+                            }
+                          </strong>
+
+                          <span>
+                            Required Skills
+                          </span>
+                        </div>
+
+                        <div className="selected-career-stat">
+                          <strong>
+                            {
+                              selectedGap
+                                .matchedSkills
+                                .length
+                            }
+                          </strong>
+
+                          <span>
+                            Skills You Already Have
+                          </span>
+                        </div>
+
+                        <div className="selected-career-stat">
+                          <strong>
+                            {
+                              selectedGap
+                                .missingSkills
+                                .length
+                            }
+                          </strong>
+
+                          <span>
+                            Skills to Learn
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="selected-career-gap">
+                        <Target size={17} />
+
+                        <div>
+                          <strong>
+                            Your next step
+                          </strong>
+
+                          <span>
+                            {selectedGap.missingSkills.length >
+                            0
+                              ? `Start learning ${selectedGap.missingSkills[0]}${
+                                  selectedGap.missingSkills
+                                    .length > 1
+                                    ? ` and ${
+                                        selectedGap
+                                          .missingSkills
+                                          .length - 1
+                                      } more skill${
+                                        selectedGap
+                                          .missingSkills
+                                          .length -
+                                          1 ===
+                                        1
+                                          ? ""
+                                          : "s"
+                                      }`
+                                    : ""
+                                } to move closer to this career.`
+                              : "You already have all listed required skills. Test your knowledge and keep improving."}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="selected-career-actions">
+                        <Link
+                          to="/skill-gap"
+                          state={{
+                            career:
+                              selectedCareer,
+                          }}
+                          className="primary-button"
+                        >
+                          <Target size={16} />
+                          View Skill Gap
+                          <ArrowRight size={15} />
+                        </Link>
+
+                        <Link
+                          to="/resources"
+                          state={{
+                            career:
+                              selectedCareer,
+                          }}
+                          className="secondary-button"
+                        >
+                          <BookOpen size={16} />
+                          Start Learning
+                          <ArrowRight size={15} />
+                        </Link>
+
+                        <Link
+                          to="/mock-interview"
+                          state={{
+                            career:
+                              selectedCareer,
+                          }}
+                          className="mock-test-button"
+                        >
+                          <BrainCircuit size={16} />
+                          Take Mock Test
+                          <ArrowRight size={15} />
+                        </Link>
+                      </div>
+                    </>
+                  );
+                })()}
+              </section>
+            )}
           </div>
         </section>
 
@@ -3278,113 +3786,321 @@ export default function Career() {
 
                 <div className="results-grid">
                   {filteredCareers.map(
-                    (career) => (
-                      <article
-                        className="career-card"
-                        key={career.id}
-                      >
-                        <div className="career-card-header">
-                          <div>
-                            <h3>
-                              {career.title}
-                            </h3>
+                    (career) => {
+                      const isSelected =
+                        selectedCareer?.id ===
+                        career.id;
 
-                            <div
-                              className={`match-label ${getDemandClass(
+                      return (
+                        <article
+                          className={`career-card ${
+                            isSelected
+                              ? "selected-career"
+                              : ""
+                          }`}
+                          key={career.id}
+                        >
+                          {isSelected && (
+                            <div className="selected-badge">
+                              <CheckCircle2
+                                size={12}
+                              />
+                              Selected
+                            </div>
+                          )}
+
+                          <div className="career-card-header">
+                            <div>
+                              <h3>
+                                {career.title}
+                              </h3>
+
+                              <div
+                                className={`match-label ${getDemandClass(
+                                  career.demand_level
+                                )}`}
+                              >
+                                {getDemandLabel(
+                                  career.demand_level
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <p className="career-description">
+                            {career.description}
+                          </p>
+
+                          <div className="skills-group">
+                            <div className="skills-group-title">
+                              <Target size={14} />
+                              Required Skills
+                            </div>
+
+                            <div className="skill-chips">
+                              {career.required_skills
+                                .slice(0, 6)
+                                .map((skill) => (
+                                  <span
+                                    className="skill-chip"
+                                    style={{
+                                      background:
+                                        "var(--primary-soft)",
+                                      color:
+                                        "var(--text)",
+                                    }}
+                                    key={skill}
+                                  >
+                                    {skill}
+                                  </span>
+                                ))}
+                            </div>
+                          </div>
+
+                          <div className="card-meta">
+                            <span className="meta-pill">
+                              {formatSalary(
+                                career.average_salary
+                              )}
+                            </span>
+
+                            <span
+                              className={`meta-pill ${getDemandClass(
                                 career.demand_level
                               )}`}
                             >
                               {getDemandLabel(
                                 career.demand_level
                               )}
-                            </div>
-                          </div>
-                        </div>
-
-                        <p className="career-description">
-                          {career.description}
-                        </p>
-
-                        <div className="skills-group">
-                          <div className="skills-group-title">
-                            <Target size={14} />
-                            Required Skills
+                            </span>
                           </div>
 
-                          <div className="skill-chips">
-                            {career.required_skills
-                              .slice(0, 6)
-                              .map((skill) => (
-                                <span
-                                  className="skill-chip"
-                                  style={{
-                                    background:
-                                      "var(--primary-soft)",
-                                    color:
-                                      "var(--text)",
-                                  }}
-                                  key={skill}
-                                >
-                                  {skill}
-                                </span>
-                              ))}
-                          </div>
-                        </div>
+                          <div className="card-footer">
+                            <span
+                              style={{
+                                fontSize:
+                                  "0.76rem",
+                                opacity: 0.58,
+                              }}
+                            >
+                              {isSelected
+                                ? "Career selected for your journey"
+                                : "Choose this career path"}
+                            </span>
 
-                        <div className="card-meta">
-                          <span className="meta-pill">
-                            {formatSalary(
-                              career.average_salary
-                            )}
-                          </span>
-
-                          <span
-                            className={`meta-pill ${getDemandClass(
-                              career.demand_level
-                            )}`}
-                          >
-                            {getDemandLabel(
-                              career.demand_level
-                            )}
-                          </span>
-                        </div>
-
-                        <div className="card-footer">
-                          <span
-                            style={{
-                              fontSize: "0.76rem",
-                              opacity: 0.58,
-                            }}
-                          >
-                            Build relevant skills
-                          </span>
-
-                          {career.career_url ? (
-                            <a
-                              href={
-                                career.career_url
+                            <button
+                              type="button"
+                              className={`select-career-button ${
+                                isSelected
+                                  ? "selected"
+                                  : ""
+                              }`}
+                              onClick={() =>
+                                handleSelectCareer(
+                                  career
+                                )
                               }
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="card-link"
                             >
-                              Explore Career
-                              <ArrowRight size={14} />
-                            </a>
-                          ) : (
-                            <Link
-                              to="/skills"
-                              className="card-link"
-                            >
-                              View Skills
-                              <ArrowRight size={14} />
-                            </Link>
-                          )}
-                        </div>
-                      </article>
-                    )
+                              {isSelected ? (
+                                <>
+                                  <CheckCircle2
+                                    size={14}
+                                  />
+                                  Selected
+                                </>
+                              ) : (
+                                <>
+                                  Select Career
+                                  <ArrowRight
+                                    size={14}
+                                  />
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </article>
+                      );
+                    }
                   )}
                 </div>
+
+                {/* Selected career journey for normal career library */}
+                {selectedCareer && (
+                  <div className="selected-career-panel">
+                    <div className="selected-career-header">
+                      <div className="selected-career-title-wrap">
+                        <div className="selected-career-icon">
+                          <CheckCircle2 size={23} />
+                        </div>
+
+                        <div>
+                          <div className="selected-career-kicker">
+                            <CheckCircle2 size={13} />
+                            Your Selected Career
+                          </div>
+
+                          <h3>
+                            {selectedCareer.title}
+                          </h3>
+
+                          <p>
+                            This career is now selected as your
+                            SkillBridge learning direction. Continue
+                            with your skill gap, learning resources,
+                            or mock test.
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="selected-career-close"
+                        onClick={() =>
+                          setSelectedCareer(null)
+                        }
+                        aria-label="Clear selected career"
+                      >
+                        ×
+                      </button>
+                    </div>
+
+                    {(() => {
+                      const selectedGap =
+                        getSkillGap(
+                          selectedCareer
+                        );
+
+                      return (
+                        <>
+                          <div className="selected-career-stats">
+                            <div className="selected-career-stat">
+                              <strong>
+                                {
+                                  selectedCareer
+                                    .required_skills
+                                    .length
+                                }
+                              </strong>
+
+                              <span>
+                                Required Skills
+                              </span>
+                            </div>
+
+                            <div className="selected-career-stat">
+                              <strong>
+                                {
+                                  selectedGap
+                                    .matchedSkills
+                                    .length
+                                }
+                              </strong>
+
+                              <span>
+                                Skills You Have
+                              </span>
+                            </div>
+
+                            <div className="selected-career-stat">
+                              <strong>
+                                {
+                                  selectedGap
+                                    .missingSkills
+                                    .length
+                                }
+                              </strong>
+
+                              <span>
+                                Skills to Learn
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="selected-career-gap">
+                            <Target size={17} />
+
+                            <div>
+                              <strong>
+                                Recommended next step
+                              </strong>
+
+                              <span>
+                                {selectedGap
+                                  .missingSkills
+                                  .length > 0
+                                  ? `Start learning ${
+                                      selectedGap
+                                        .missingSkills[0]
+                                    }${
+                                      selectedGap
+                                        .missingSkills
+                                        .length > 1
+                                        ? ` and ${
+                                            selectedGap
+                                              .missingSkills
+                                              .length -
+                                            1
+                                          } more skill${
+                                            selectedGap
+                                              .missingSkills
+                                              .length -
+                                              1 ===
+                                            1
+                                              ? ""
+                                              : "s"
+                                          }`
+                                        : ""
+                                    } through SkillBridge Resources.`
+                                  : "You already have all listed required skills. Take a mock test to check your readiness."}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="selected-career-actions">
+                            <Link
+                              to="/skill-gap"
+                              state={{
+                                career:
+                                  selectedCareer,
+                              }}
+                              className="primary-button"
+                            >
+                              <Target size={16} />
+                              View Skill Gap
+                              <ArrowRight size={15} />
+                            </Link>
+
+                            <Link
+                              to="/resources"
+                              state={{
+                                career:
+                                  selectedCareer,
+                              }}
+                              className="secondary-button"
+                            >
+                              <BookOpen size={16} />
+                              Start Learning
+                              <ArrowRight size={15} />
+                            </Link>
+
+                            <Link
+                              to="/mock-interview"
+                              state={{
+                                career:
+                                  selectedCareer,
+                              }}
+                              className="mock-test-button"
+                            >
+                              <BrainCircuit size={16} />
+                              Take Mock Test
+                              <ArrowRight size={15} />
+                            </Link>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -3407,11 +4123,17 @@ export default function Career() {
             <Link
               to="/skill-gap"
               state={{
-                career: roadmapCareer,
+                career:
+                  selectedCareer ??
+                  roadmapCareer,
               }}
               className="cta-button"
             >
-              <span>Improve My Skills</span>
+              <span>
+                {selectedCareer
+                  ? "Continue With Selected Career"
+                  : "Improve My Skills"}
+              </span>
 
               <ArrowRight
                 size={15}
