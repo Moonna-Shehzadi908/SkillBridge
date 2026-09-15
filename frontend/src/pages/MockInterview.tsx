@@ -14,8 +14,7 @@ import {
   Target,
 } from "lucide-react";
 import ThemeToggle from "../components/ThemeToggle";
-
-const API_URL = "http://127.0.0.1:8000";
+import apiFetch from "../services/api";
 
 interface Career {
   id: number;
@@ -48,14 +47,35 @@ interface LocationState {
   career?: Career;
 }
 
-const getToken = () => localStorage.getItem("access_token");
-
 export default function MockInterview() {
   const location = useLocation();
   const navigate = useNavigate();
 
   const state = location.state as LocationState | null;
-  const selectedCareer = state?.career;
+
+  /*
+   * Career is first taken from router state.
+   * If the page is refreshed, router state can disappear,
+   * so selected_career from localStorage is used as fallback.
+   */
+  const [selectedCareer] = useState<Career | null>(() => {
+    if (state?.career) {
+      return state.career;
+    }
+
+    try {
+      const savedCareer = localStorage.getItem("selected_career");
+
+      if (!savedCareer) {
+        return null;
+      }
+
+      return JSON.parse(savedCareer) as Career;
+    } catch {
+      localStorage.removeItem("selected_career");
+      return null;
+    }
+  });
 
   const [interview, setInterview] = useState<Interview | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -75,11 +95,16 @@ export default function MockInterview() {
     ).length;
   }, [interview]);
 
+  /*
+   * Progress:
+   * Question 1 / 5 = 20%
+   * Question 2 / 5 = 40%
+   * ...
+   * Last question = 100%
+   */
   const progress = interview
     ? Math.round(
-        ((currentIndex + (showResult ? 1 : 0)) /
-          interview.total_questions) *
-          100
+        ((currentIndex + 1) / interview.total_questions) * 100
       )
     : 0;
 
@@ -94,9 +119,7 @@ export default function MockInterview() {
         return;
       }
 
-      const token = getToken();
-
-      if (!token) {
+      if (!localStorage.getItem("access_token")) {
         navigate("/login");
         return;
       }
@@ -105,20 +128,13 @@ export default function MockInterview() {
         setLoading(true);
         setError("");
 
-        const response = await fetch(
-          `${API_URL}/api/mock-interviews/`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              career_id: selectedCareer.id,
-              number_of_questions: 5,
-            }),
-          }
-        );
+        const response = await apiFetch("/api/mock-interviews/", {
+          method: "POST",
+          body: JSON.stringify({
+            career_id: selectedCareer.id,
+            number_of_questions: 5,
+          }),
+        });
 
         if (!response.ok) {
           const data = await response.json().catch(() => null);
@@ -153,9 +169,7 @@ export default function MockInterview() {
   const submitCurrentAnswer = async () => {
     if (!interview || !currentQuestion) return;
 
-    const token = getToken();
-
-    if (!token) {
+    if (!localStorage.getItem("access_token")) {
       navigate("/login");
       return;
     }
@@ -169,14 +183,10 @@ export default function MockInterview() {
       setSubmitting(true);
       setError("");
 
-      const response = await fetch(
-        `${API_URL}/api/mock-interviews/${interview.id}/questions/${currentQuestion.id}/answer/`,
+      const response = await apiFetch(
+        `/api/mock-interviews/${interview.id}/questions/${currentQuestion.id}/answer/`,
         {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
           body: JSON.stringify({
             user_answer: answer,
           }),
@@ -194,7 +204,6 @@ export default function MockInterview() {
 
       const result = await response.json();
 
-      // Update current question locally.
       const updatedQuestions = interview.questions.map(
         (question) =>
           question.id === currentQuestion.id
@@ -202,12 +211,13 @@ export default function MockInterview() {
                 ...question,
                 user_answer: answer,
                 score: result.score ?? question.score,
-                feedback: result.feedback ?? question.feedback,
+                feedback:
+                  result.feedback ?? question.feedback,
               }
             : question
       );
 
-      const updatedInterview = {
+      const updatedInterview: Interview = {
         ...interview,
         questions: updatedQuestions,
         completed:
@@ -357,7 +367,6 @@ export default function MockInterview() {
 
         <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl">
-            {/* Result hero */}
             <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-[var(--border)] dark:bg-[var(--surface)] sm:p-12">
               <div className="absolute -right-20 -top-20 h-48 w-48 rounded-full bg-[var(--primary)]/10 blur-3xl" />
               <div className="absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-cyan-500/10 blur-3xl" />
@@ -386,7 +395,6 @@ export default function MockInterview() {
                   .
                 </p>
 
-                {/* Score */}
                 <div className="mx-auto mt-8 flex h-36 w-36 items-center justify-center rounded-full border-[10px] border-[var(--primary)]/15">
                   <div className="flex h-28 w-28 flex-col items-center justify-center rounded-full bg-[var(--primary)]/10">
                     <span className="text-4xl font-black text-[var(--primary)]">
@@ -398,7 +406,6 @@ export default function MockInterview() {
                   </div>
                 </div>
 
-                {/* Stats */}
                 <div className="mt-9 grid grid-cols-2 gap-3 sm:grid-cols-3">
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-[var(--border)] dark:bg-[var(--background)]">
                     <p className="text-2xl font-black text-slate-900 dark:text-[var(--text-heading)]">
@@ -432,7 +439,6 @@ export default function MockInterview() {
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
                   <button
                     onClick={startAnotherInterview}
@@ -453,7 +459,6 @@ export default function MockInterview() {
               </div>
             </div>
 
-            {/* Feedback */}
             <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 dark:border-[var(--border)] dark:bg-[var(--surface)] sm:p-8">
               <div className="flex items-start gap-4">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/10">
@@ -484,7 +489,6 @@ export default function MockInterview() {
 
   return (
     <div className="min-h-screen bg-white text-slate-900 transition-colors dark:bg-[var(--background)] dark:text-[var(--text)]">
-      {/* Header */}
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-[var(--border)] dark:bg-[var(--surface)]/90">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <button
@@ -510,7 +514,6 @@ export default function MockInterview() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8 sm:py-10">
-        {/* Page heading */}
         <section className="mb-7">
           <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
             <div>
@@ -540,7 +543,6 @@ export default function MockInterview() {
           </div>
         </section>
 
-        {/* Progress */}
         <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-[var(--border)] dark:bg-[var(--surface)] sm:p-5">
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -572,7 +574,6 @@ export default function MockInterview() {
         </section>
 
         <div className="grid gap-6 lg:grid-cols-[1fr_310px]">
-          {/* Question */}
           <section className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-[var(--border)] dark:bg-[var(--surface)]">
             <div className="p-6 sm:p-8 lg:p-10">
               <div className="flex items-start justify-between gap-4">
@@ -655,9 +656,7 @@ export default function MockInterview() {
             </div>
           </section>
 
-          {/* Sidebar */}
           <aside className="space-y-5">
-            {/* Skills */}
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-[var(--border)] dark:bg-[var(--surface)]">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/10">
@@ -692,7 +691,6 @@ export default function MockInterview() {
               </div>
             </div>
 
-            {/* Tip */}
             <div className="rounded-3xl border border-[var(--primary)]/15 bg-[var(--primary)]/5 p-6">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary)]/10">
@@ -714,7 +712,6 @@ export default function MockInterview() {
               </p>
             </div>
 
-            {/* Progress list */}
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-[var(--border)] dark:bg-[var(--surface)]">
               <h3 className="font-bold text-slate-900 dark:text-[var(--text-heading)]">
                 Interview Progress

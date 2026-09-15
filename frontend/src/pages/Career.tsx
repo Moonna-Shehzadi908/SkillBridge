@@ -585,12 +585,14 @@ export default function Career() {
    * Select a career and keep it as the active
    * SkillBridge career journey.
    */
-  const handleSelectCareer = (
-    career: Career
-  ) => {
-    setSelectedCareer(career);
-  };
+ const handleSelectCareer = (career: Career) => {
+  setSelectedCareer(career);
 
+  localStorage.setItem(
+    "selected_career",
+    JSON.stringify(career)
+  );
+};
   return (
     <div className="career-page">
       <style>{`
@@ -3557,19 +3559,7 @@ export default function Career() {
                       </div>
 
                       <div className="selected-career-actions">
-                        <Link
-                          to="/skill-gap"
-                          state={{
-                            career:
-                              selectedCareer,
-                          }}
-                          className="primary-button"
-                        >
-                          <Target size={16} />
-                          View Skill Gap
-                          <ArrowRight size={15} />
-                        </Link>
-
+      
                         <Link
                           to="/resources"
                           state={{
@@ -4057,19 +4047,7 @@ export default function Career() {
                           </div>
 
                           <div className="selected-career-actions">
-                            <Link
-                              to="/skill-gap"
-                              state={{
-                                career:
-                                  selectedCareer,
-                              }}
-                              className="primary-button"
-                            >
-                              <Target size={16} />
-                              View Skill Gap
-                              <ArrowRight size={15} />
-                            </Link>
-
+                        
                             <Link
                               to="/resources"
                               state={{
@@ -4110,18 +4088,18 @@ export default function Career() {
         <section className="career-container">
           <div className="cta">
             <div>
-              <h2>
-                Ready to close your skill gaps?
-              </h2>
+            <h2>
+  Ready to grow your skills?
+</h2>
 
-              <p>
-                Keep improving your skills and discover
-                stronger career matches as your profile grows.
-              </p>
+<p>
+  Keep learning, improve your skills, and prepare yourself
+  for your selected career path.
+</p>
             </div>
 
             <Link
-              to="/skill-gap"
+              to="/resources"
               state={{
                 career:
                   selectedCareer ??

@@ -50,6 +50,12 @@ interface UserSkill {
   name: string;
 }
 
+interface SelectedCareer {
+  id: number;
+  title: string;
+  required_skills?: string[];
+}
+
 const opportunityTypeOptions = [
   { value: "all", label: "All Opportunities" },
   { value: "internship", label: "Internships" },
@@ -61,6 +67,40 @@ const opportunityTypeOptions = [
 
 function getToken() {
   return localStorage.getItem("access_token");
+}
+
+function normalizeSkill(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function getSelectedCareer(): SelectedCareer | null {
+  try {
+    const saved = localStorage.getItem("selected_career");
+
+    if (!saved) {
+      return null;
+    }
+
+    const parsed = JSON.parse(saved);
+
+    if (!parsed || typeof parsed !== "object") {
+      return null;
+    }
+
+    return {
+      id: Number(parsed.id),
+      title: String(parsed.title ?? ""),
+      required_skills: Array.isArray(parsed.required_skills)
+        ? parsed.required_skills
+        : [],
+    };
+  } catch {
+    localStorage.removeItem("selected_career");
+    return null;
+  }
 }
 
 function formatDeadline(deadline: string | null) {
@@ -153,6 +193,11 @@ function Opportunities() {
   const [userSkills, setUserSkills] =
     useState<UserSkill[]>([]);
 
+  const [selectedCareer, setSelectedCareer] =
+    useState<SelectedCareer | null>(() =>
+      getSelectedCareer(),
+    );
+
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] =
     useState("all");
@@ -177,6 +222,30 @@ function Opportunities() {
     localStorage.removeItem("refresh_token");
     navigate("/login");
   }, [navigate]);
+
+  const syncSelectedCareer = useCallback(() => {
+    setSelectedCareer(getSelectedCareer());
+  }, []);
+
+  useEffect(() => {
+    syncSelectedCareer();
+
+    const handleFocus = () => {
+      syncSelectedCareer();
+    };
+
+    window.addEventListener(
+      "focus",
+      handleFocus,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "focus",
+        handleFocus,
+      );
+    };
+  }, [syncSelectedCareer]);
 
   const fetchOpportunities =
     useCallback(async () => {
@@ -300,12 +369,67 @@ function Opportunities() {
     [userSkills],
   );
 
+  const careerRequiredSkills = useMemo(() => {
+    return new Set(
+      (selectedCareer?.required_skills ?? [])
+        .map(normalizeSkill)
+        .filter(Boolean),
+    );
+  }, [selectedCareer]);
+
+  const matchesSelectedCareer = useCallback(
+    (opportunity: Opportunity) => {
+      if (!selectedCareer) {
+        return true;
+      }
+
+      if (careerRequiredSkills.size === 0) {
+        return true;
+      }
+
+      const opportunitySkill = normalizeSkill(
+        opportunity.skill_name,
+      );
+
+      if (!opportunitySkill) {
+        return false;
+      }
+
+      return Array.from(careerRequiredSkills).some(
+        (requiredSkill) =>
+          opportunitySkill === requiredSkill ||
+          opportunitySkill.includes(requiredSkill) ||
+          requiredSkill.includes(opportunitySkill),
+      );
+    },
+    [selectedCareer, careerRequiredSkills],
+  );
+
+  const careerMatchedOpportunities = useMemo(() => {
+    if (!selectedCareer) {
+      return opportunities;
+    }
+
+    if (careerRequiredSkills.size === 0) {
+      return opportunities;
+    }
+
+    return opportunities.filter(
+      matchesSelectedCareer,
+    );
+  }, [
+    opportunities,
+    selectedCareer,
+    careerRequiredSkills,
+    matchesSelectedCareer,
+  ]);
+
   const filteredOpportunities = useMemo(() => {
     const normalizedSearch = search
       .trim()
       .toLowerCase();
 
-    return opportunities
+    return careerMatchedOpportunities
       .filter((opportunity) => {
         if (
           typeFilter !== "all" &&
@@ -347,7 +471,7 @@ function Opportunities() {
           (a.match_score ?? 0),
       );
   }, [
-    opportunities,
+    careerMatchedOpportunities,
     search,
     typeFilter,
     remoteOnly,
@@ -355,29 +479,33 @@ function Opportunities() {
 
   const matchedCount = useMemo(
     () =>
-      opportunities.filter((opportunity) =>
-        userSkillIds.has(opportunity.skill),
+      careerMatchedOpportunities.filter(
+        (opportunity) =>
+          userSkillIds.has(opportunity.skill),
       ).length,
-    [opportunities, userSkillIds],
+    [
+      careerMatchedOpportunities,
+      userSkillIds,
+    ],
   );
 
   const remoteCount = useMemo(
     () =>
-      opportunities.filter(
+      careerMatchedOpportunities.filter(
         (opportunity) =>
           opportunity.is_remote,
       ).length,
-    [opportunities],
+    [careerMatchedOpportunities],
   );
 
   const internshipCount = useMemo(
     () =>
-      opportunities.filter(
+      careerMatchedOpportunities.filter(
         (opportunity) =>
           opportunity.opportunity_type ===
           "internship",
       ).length,
-    [opportunities],
+    [careerMatchedOpportunities],
   );
 
   return (
@@ -451,6 +579,22 @@ function Opportunities() {
                 your profile.
               </p>
 
+              {selectedCareer && (
+                <div className="mt-5 inline-flex max-w-full items-center gap-2 rounded-xl border border-purple-500/20 bg-purple-500/10 px-4 py-2.5 text-sm">
+                  <Target
+                    size={17}
+                    className="shrink-0 text-[var(--primary)]"
+                  />
+
+                  <span className="text-[var(--text)]">
+                    Showing opportunities for
+                    <span className="ml-1 font-semibold text-[var(--primary)]">
+                      {selectedCareer.title}
+                    </span>
+                  </span>
+                </div>
+              )}
+
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link
                   to="/skills"
@@ -477,7 +621,7 @@ function Opportunities() {
                 />
 
                 <p className="text-2xl font-bold">
-                  {opportunities.length}
+                  {careerMatchedOpportunities.length}
                 </p>
 
                 <p className="text-xs text-[var(--text)]">
@@ -598,7 +742,7 @@ function Opportunities() {
               </span>{" "}
               of{" "}
               <span className="font-semibold text-[var(--text-heading)]">
-                {opportunities.length}
+                {careerMatchedOpportunities.length}
               </span>{" "}
               opportunities
             </p>
@@ -615,6 +759,49 @@ function Opportunities() {
               )}
           </div>
         </section>
+
+        {/* Career information */}
+        {selectedCareer && (
+          <section className="mb-8 rounded-2xl border border-blue-500/15 bg-blue-500/5 p-5 transition-colors duration-300">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-2.5 text-blue-600 dark:text-blue-400 shadow-sm">
+                <Briefcase size={20} />
+              </div>
+
+              <div>
+                <h3 className="font-semibold">
+                  Career-focused opportunities
+                </h3>
+
+                <p className="mt-1 text-sm text-[var(--text)]">
+                  Showing opportunities related to the
+                  required skills for{" "}
+                  <span className="font-semibold text-[var(--primary)]">
+                    {selectedCareer.title}
+                  </span>
+                  .
+                </p>
+
+                {selectedCareer.required_skills &&
+                  selectedCareer.required_skills.length >
+                    0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {selectedCareer.required_skills.map(
+                        (skill) => (
+                          <span
+                            key={skill}
+                            className="rounded-full border border-blue-500/10 bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-blue-600 shadow-sm dark:text-blue-300"
+                          >
+                            {skill}
+                          </span>
+                        ),
+                      )}
+                    </div>
+                  )}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Skill information */}
         {!skillsLoading &&
@@ -711,10 +898,10 @@ function Opportunities() {
               No opportunities found
             </h3>
 
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--text)]">
-              Try changing your search or filters.
-              New opportunities can also be added
-              through the backend.
+            <p className="text-sm leading-6 text-[var(--text)]">
+              {selectedCareer
+                ? `No opportunities currently match the required skills for ${selectedCareer.title}.`
+                : "Try changing your search or filters. New opportunities can also be added through the backend."}
             </p>
 
             {(search ||
@@ -961,14 +1148,13 @@ function Opportunities() {
         </section>
       </main>
 
-      {/* =========================
-          Footer
-      ========================== */}
+      {/* Footer */}
       <footer className="mt-6 border-t border-slate-200 bg-white dark:border-[var(--border)] dark:bg-[var(--surface)]">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-8 text-center sm:flex-row sm:px-6 lg:px-8">
           <div>
             <p className="text-sm font-bold text-[var(--text-heading)]">
-              Skill<span className="text-[var(--primary)]">
+              Skill
+              <span className="text-[var(--primary)]">
                 Bridge
               </span>
             </p>
@@ -985,9 +1171,7 @@ function Opportunities() {
         </div>
       </footer>
 
-      {/* =========================
-          Opportunity Details Modal
-      ========================== */}
+      {/* Opportunity Details Modal */}
       {selectedOpportunity && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"

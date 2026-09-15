@@ -7,7 +7,6 @@ import Dashboard from "./pages/Dashboard";
 import Skills from "./pages/Skills";
 import Resources from "./pages/Resources";
 import CareerPage from "./pages/Career";
-import SkillGap from "./pages/SkillGap";
 import Opportunities from "./pages/Opportunities";
 import Chatbot from "./components/Chatbot";
 import MockInterview from "./pages/MockInterview";
@@ -22,7 +21,6 @@ function App() {
         <Route path="/skills" element={<Skills />} />
         <Route path="/resources" element={<Resources />} />
         <Route path="/career" element={<CareerPage />} />
-        <Route path="/skill-gap" element={<SkillGap />} />
         <Route path="/opportunities" element={<Opportunities />} />
         <Route path="/mock-interview" element={<MockInterview />} />
       </Routes>
