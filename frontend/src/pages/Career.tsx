@@ -4089,12 +4089,11 @@ export default function Career() {
           <div className="cta">
             <div>
             <h2>
-  Ready to grow your skills?
-</h2>
+Explore Learning Resources</h2>
 
 <p>
-  Keep learning, improve your skills, and prepare yourself
-  for your selected career path.
+Access curated articles, videos, courses, and documentation 
+to build the skills needed for your selected career path.
 </p>
             </div>
 
@@ -4110,7 +4109,7 @@ export default function Career() {
               <span>
                 {selectedCareer
                   ? "Continue With Selected Career"
-                  : "Improve My Skills"}
+                  : "Explore Resources"}
               </span>
 
               <ArrowRight

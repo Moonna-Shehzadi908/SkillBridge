@@ -19,6 +19,84 @@ from .services import (
 )
 
 
+def evaluate_answer(user_answer, expected_answer):
+    """
+    Basic answer evaluation based on keyword overlap.
+
+    Returns:
+        score: integer from 0 to 100
+        feedback: evaluation message
+    """
+
+    user_answer = user_answer.strip().lower()
+    expected_answer = expected_answer.strip().lower()
+
+    # Empty answer
+    if not user_answer:
+        return 0, "No answer was provided."
+
+    # Exact match
+    if user_answer == expected_answer:
+        return 100, "Excellent answer. Your response matches the expected answer very well."
+
+    # Convert answers into words
+    user_words = set(
+        word.strip(".,!?;:()[]{}\"'")
+        for word in user_answer.split()
+        if len(word.strip(".,!?;:()[]{}\"'")) > 2
+    )
+
+    expected_words = set(
+        word.strip(".,!?;:()[]{}\"'")
+        for word in expected_answer.split()
+        if len(word.strip(".,!?;:()[]{}\"'")) > 2
+    )
+
+    if not expected_words:
+        return 50, "Your answer was submitted, but it could not be evaluated properly."
+
+    # Find common keywords
+    common_words = user_words.intersection(expected_words)
+
+    match_percentage = (
+        len(common_words) / len(expected_words)
+    ) * 100
+
+    # Strong answer
+    if match_percentage >= 80:
+        return (
+            90,
+            "Very good answer. Your response contains most of the important concepts."
+        )
+
+    # Good answer
+    if match_percentage >= 60:
+        return (
+            75,
+            "Good answer. You covered several important concepts, but some details are missing."
+        )
+
+    # Partial answer
+    if match_percentage >= 40:
+        return (
+            55,
+            "Partially correct. Your answer contains some relevant concepts, but it needs more explanation."
+        )
+
+    # Weak answer
+    if match_percentage >= 20:
+        return (
+            30,
+            "Your answer has limited relevance to the expected answer. Try to include the key concepts."
+        )
+
+    # Wrong / irrelevant answer
+    return (
+        10,
+        "Your answer does not closely match the expected concepts. Review the topic and try again."
+    )
+
+
 class InterviewListCreateView(APIView):
     """
     GET:
@@ -153,19 +231,14 @@ class SubmitInterviewAnswerView(APIView):
 
         question.user_answer = user_answer
 
-        # Temporary scoring system.
-        # Later we can replace this with AI evaluation.
-        if user_answer.strip():
-            question.score = 100
-            question.feedback = (
-                "Answer submitted successfully. "
-                "AI evaluation can be added later."
-            )
-        else:
-            question.score = 0
-            question.feedback = (
-                "No answer was provided."
-            )
+        # Evaluate answer instead of automatically giving 100.
+        score, feedback = evaluate_answer(
+            user_answer=user_answer,
+            expected_answer=question.expected_answer,
+        )
+
+        question.score = score
+        question.feedback = feedback
 
         question.save(
             update_fields=[
