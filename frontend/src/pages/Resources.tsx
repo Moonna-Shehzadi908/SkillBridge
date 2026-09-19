@@ -345,14 +345,7 @@ function Resources() {
       ?.progress_percentage ?? 0;
   };
 
-  const getProgressStatus = (
-    resourceId: number,
-  ): ProgressStatus => {
-    return (
-      getProgressForResource(resourceId)?.status ??
-      "not_started"
-    );
-  };
+ 
 
   const getProgressStatusLabel = (
     status: ProgressStatus,
