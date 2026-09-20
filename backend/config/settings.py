@@ -97,11 +97,6 @@ if DATABASE_URL:
 
     parsed = urllib.parse.urlparse(DATABASE_URL)
 
-    print("DB DEBUG USER:", parsed.username)
-    print("DB DEBUG HOST:", parsed.hostname)
-    print("DB DEBUG PORT:", parsed.port)
-    print("DB DEBUG NAME:", parsed.path.lstrip("/"))
-
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -112,7 +107,17 @@ if DATABASE_URL:
             "PORT": parsed.port or 5432,
         }
     }
-    
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("DB_NAME"),
+            "USER": os.getenv("DB_USER"),
+            "PASSWORD": os.getenv("DB_PASSWORD"),
+            "HOST": os.getenv("DB_HOST", "localhost"),
+            "PORT": os.getenv("DB_PORT", "5432"),
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
