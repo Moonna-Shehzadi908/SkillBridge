@@ -3,8 +3,7 @@ import type { ChangeEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ThemeToggle from "../components/ThemeToggle";
 
-const API_URL = "http://127.0.0.1:8000";
-
+const API_URL = import.meta.env.VITE_API_URL;
 interface Skill {
   id: number;
   name: string;
