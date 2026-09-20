@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import ThemeToggle from "../components/ThemeToggle";
 
 const API_URL = import.meta.env.VITE_API_URL;
+
 function LoginPage() {
   const navigate = useNavigate();
 
@@ -41,14 +42,32 @@ function LoginPage() {
         }),
       });
 
-      const data = await response.json();
+      // Read response as text first so HTML error pages
+      // don't cause "Unexpected token '<'" JSON errors.
+      const responseText = await response.text();
+
+      let data: {
+        access?: string;
+        refresh?: string;
+        detail?: string;
+      } = {};
+
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        throw new Error(
+          `Server returned an invalid response (${response.status}). Please try again.`,
+        );
+      }
 
       if (!response.ok) {
-        if (data.detail) {
-          throw new Error(data.detail);
-        }
+        throw new Error(
+          data.detail || "Invalid username or password.",
+        );
+      }
 
-        throw new Error("Invalid username or password.");
+      if (!data.access || !data.refresh) {
+        throw new Error("Login response did not contain authentication tokens.");
       }
 
       // Save JWT tokens
