@@ -28,91 +28,118 @@ function Register() {
   };
 
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    setError("");
+  setError("");
 
-    if (formData.password !== formData.password_confirm) {
-      setError("Passwords do not match.");
-      return;
-    }
+  if (formData.password !== formData.password_confirm) {
+    setError("Passwords do not match.");
+    return;
+  }
 
-    if (formData.password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
+  if (formData.password.length < 8) {
+    setError("Password must be at least 8 characters.");
+    return;
+  }
 
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      // 1. Create account
-      const registerResponse = await fetch(
-        `${API_URL}/api/accounts/register/`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        },
-      );
-
-      const registerData = await registerResponse.json();
-
-      if (!registerResponse.ok) {
-        if (typeof registerData === "object") {
-          const messages = Object.entries(registerData)
-            .map(([field, value]) => {
-              const message = Array.isArray(value)
-                ? value.join(" ")
-                : String(value);
-
-              return `${field}: ${message}`;
-            })
-            .join("\n");
-
-          throw new Error(messages || "Registration failed.");
-        }
-
-        throw new Error("Registration failed.");
-      }
-
-      // 2. Automatically login after registration
-      const loginResponse = await fetch(`${API_URL}/api/token/`, {
+  try {
+    // 1. Create account
+    const registerResponse = await fetch(
+      `${API_URL}/api/accounts/register/`,
+      {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          username: formData.username,
-          password: formData.password,
-        }),
-      });
+        body: JSON.stringify(formData),
+      },
+    );
 
-      const loginData = await loginResponse.json();
+    const registerText = await registerResponse.text();
 
-      if (!loginResponse.ok) {
-        throw new Error(
-          "Account created successfully, but automatic login failed. Please login manually.",
-        );
-      }
+    let registerData: Record<string, unknown> = {};
 
-      // 3. Save JWT tokens
-      localStorage.setItem("access_token", loginData.access);
-      localStorage.setItem("refresh_token", loginData.refresh);
-
-      // 4. Go to dashboard
-      navigate("/dashboard");
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong. Please try again.",
+    try {
+      registerData = JSON.parse(registerText);
+    } catch {
+      throw new Error(
+        `Registration server returned an invalid response (${registerResponse.status}).`,
       );
-    } finally {
-      setLoading(false);
     }
-  };
+
+    if (!registerResponse.ok) {
+      const messages = Object.entries(registerData)
+        .map(([field, value]) => {
+          const message = Array.isArray(value)
+            ? value.join(" ")
+            : String(value);
+
+          return `${field}: ${message}`;
+        })
+        .join("\n");
+
+      throw new Error(messages || "Registration failed.");
+    }
+
+    // 2. Automatically login after registration
+    const loginResponse = await fetch(`${API_URL}/api/token/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: formData.username,
+        password: formData.password,
+      }),
+    });
+
+    const loginText = await loginResponse.text();
+
+    let loginData: {
+      access?: string;
+      refresh?: string;
+      detail?: string;
+    } = {};
+
+    try {
+      loginData = JSON.parse(loginText);
+    } catch {
+      throw new Error(
+        `Login server returned an invalid response (${loginResponse.status}).`,
+      );
+    }
+
+    if (!loginResponse.ok) {
+      throw new Error(
+        loginData.detail ||
+          "Account created successfully, but automatic login failed. Please login manually.",
+      );
+    }
+
+    if (!loginData.access || !loginData.refresh) {
+      throw new Error(
+        "Login response did not contain authentication tokens.",
+      );
+    }
+
+    // 3. Save JWT tokens
+    localStorage.setItem("access_token", loginData.access);
+    localStorage.setItem("refresh_token", loginData.refresh);
+
+    // 4. Go to dashboard
+    navigate("/dashboard");
+  } catch (err) {
+    setError(
+      err instanceof Error
+        ? err.message
+        : "Something went wrong. Please try again.",
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="app relative min-h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)] transition-colors duration-300">
