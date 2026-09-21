@@ -27,6 +27,16 @@ The project is being developed as part of the **Full-Stack Web Development Inter
 
 ---
 
+## 🌐 Live Deployment
+
+**Live Website:**
+https://skill-bridge-one-sigma.vercel.app/
+
+**GitHub Repository:**
+https://github.com/Moonna-Shehzadi908/SkillBridge
+
+---
+
 ## 🛠️ Technology Stack
 
 ### Frontend
@@ -239,6 +249,7 @@ Authenticated endpoints use JWT Bearer authentication.
 
 Example:
 
+```text
 Authorization: Bearer <access_token>
 ```
 
@@ -283,7 +294,6 @@ Key UI features include:
 * Personalized recommendation sections
 * Dynamic data presentation
 
----
 ---
 
 # 🚀 Module 3 — Career Opportunities & Mock Test / Interview
@@ -377,7 +387,11 @@ The system stores:
 
 The main endpoint is:
 
+```text
 /api/mock-interviews/
+```
+
+---
 
 # 📁 Project Structure
 
@@ -409,6 +423,7 @@ SkillBridge/
 │
 ├── .gitignore
 └── README.md
+```
 
 ---
 
@@ -431,11 +446,9 @@ DELETE /api/accounts/me/skills/{skillId}/
 ```text
 GET /api/resources/
 GET /api/resources/recommendations/
-Resources also support filtering and searching through query parameters.
-
 ```
 
-
+Resources also support filtering and searching through query parameters.
 
 Examples:
 
@@ -452,12 +465,13 @@ GET /api/career/
 GET /api/opportunities/
 GET /api/mock-interviews/
 POST /api/mock-interviews/
+```
 
 Authenticated requests use JWT Bearer authentication.
 
 Example:
 
-
+```text
 Authorization: Bearer <access_token>
 ```
 
@@ -471,8 +485,6 @@ Authorization: Bearer <access_token>
 git clone https://github.com/Moonna-Shehzadi908/SkillBridge.git
 cd SkillBridge
 ```
-
----
 
 ## 2. Backend Setup
 
@@ -515,8 +527,6 @@ Backend will run at:
 http://127.0.0.1:8000/
 ```
 
----
-
 ## 3. Frontend Setup
 
 Open another terminal and navigate to the frontend:
@@ -541,10 +551,13 @@ The frontend will then be available through the Vite development URL shown in th
 
 ---
 
-# 🔗 Repository
+# 🔗 Repository & Live Deployment
 
 **GitHub Repository:**
 https://github.com/Moonna-Shehzadi908/SkillBridge
+
+**Live Website:**
+https://skill-bridge-one-sigma.vercel.app/
 
 ---
 
@@ -561,11 +574,42 @@ Module 1 established the project foundation, authentication, user profile functi
 **Status: Completed ✅**
 
 Module 2 introduced dynamic backend-driven functionality, personalized skill recommendations, recommended learning resources, and skill-based career matching.
-Module 3
 
-Status: Completed ✅
+### Module 3
 
-Career opportunities, skill-based opportunity matching, Mock Test / Mock Interview, question generation, scoring, and feedback.
+**Status: Completed ✅**
+
+Career opportunities, skill-based opportunity matching, Mock Test / Mock Interview, question generation, scoring, and feedback were implemented.
+
+### Module 4 — Deployment & Final Project Submission
+
+**Status: Completed ✅**
+
+Module 4 focused on preparing SkillBridge for final deployment and internship submission.
+
+The following deployment work was completed:
+
+* Deployed the SkillBridge frontend.
+* Deployed the SkillBridge backend.
+* Configured the deployed application for production access.
+* Verified the deployed authentication/account flow.
+* Prepared the project repository and README for final submission.
+* Prepared the live project URL for evaluation.
+* Prepared a short project demonstration video for evaluation.
+* Prepared the project documentation for final submission.
+
+## 🔗 Project Links
+
+**GitHub Repository:**
+https://github.com/Moonna-Shehzadi908/SkillBridge
+
+**Live Website:**
+https://skill-bridge-one-sigma.vercel.app/
+
+**Project Demonstration Video:**
+https://drive.google.com/file/d/1nYhF1h97IGcmtCbZXXyvZwH9EyGOn3-V/view?usp=drivesdk
+
+
 ---
 
 # 👩‍💻 Internship Information
